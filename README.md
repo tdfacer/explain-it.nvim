@@ -1,99 +1,154 @@
 <p align="center">
-  <h1 align="center">Neovim plugin boilerplate</h2>
+  <h1 align="center">explain-it.nvim</h2>
 </p>
 
 <p align="center">
-    Minimal Neovim plugin boilerplate with already configured CI, docs and tests.
+    > A catch phrase that describes your plugin.
 </p>
+
+<div align="center">
+    > Drag your video (<10MB) here to host it for free on GitHub.
+</div>
+
+<div align="center">
+
+> Videos don't work on GitHub mobile, so a GIF alternative can help users.
+
+_[GIF version of the showcase video for mobile users](SHOWCASE_GIF_LINK)_
+
+</div>
+
+## Initial Setup
+
+* Sign up for paid account at https://platform.openai.com/signup
+* Be sure to note pricing! It is recommended to use something like privacy.com to make sure that you do not accidentally exceed your price limit.
+
+## OpenAI API Reference
+
+* [chat](https://platform.openai.com/docs/api-reference/chat)
+* [completions](https://platform.openai.com/docs/api-reference/completions)
+* [models](https://platform.openai.com/docs/api-reference/models)
+
+## OpenAI Documentation
+
+* [models](https://platform.openai.com/docs/models/overview)
+
+## Adding New Models
+
+* Identify the model name with a request to `GET https://api.openai.com/v1/models`
+* Make sure the model supports the API you're interested in using (see Model endpoint compatibility [here](https://platform.openai.com/docs/models/model-endpoint-compatibility))
+* Modify the `command`, currently in `./lua/explain-it/services/chat-gpt.lua`, to use the model of interest
+* Make sure you are parsing the response correctly (should work out of the box if you are using the `chat` or `completions` APIs)
 
 ## ⚡️ Features
 
-- README.md template
-- Perfect for open-source:
-  - CODEOWNERS file for PR auto-assign
-  - Issues and PR templates
-- CI with GitHub actions:
-  - Test running on multiple Neovim version
-  - Lint check on CI
-  - Minimal run time, ideal for free plan
-- Docs with [mini.nvim `doc` plugin](https://github.com/echasnovski/mini.nvim/blob/main/lua/mini/doc.lua)
-- Tests with [mini.nvim `test` plugin](https://github.com/echasnovski/mini.nvim/blob/main/lua/mini/test.lua)
-- Linting with [Stylua](https://github.com/JohnnyMorganz/StyLua)
-- Changelog with [git-chglog](https://github.com/git-chglog/git-chglog)
+> Write short sentences describing your plugin features
+
+- FEATURE 1
+- FEATURE ..
+- FEATURE N
 
 ## 📋 Installation
 
-> **Note**:
-> This section is only required if you wish to setup the same linter and changelog generator as I do.
+<div align="center">
+<table>
+<thead>
+<tr>
+<th>Package manager</th>
+<th>Snippet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
 
-- [Install Stylua linter](https://github.com/JohnnyMorganz/StyLua#installation)
-- [Install git-chglog generator](https://github.com/git-chglog/git-chglog)
+[wbthomason/packer.nvim](https://github.com/wbthomason/packer.nvim)
 
-## ☄ Usage
+</td>
+<td>
 
-The following checklist is all your need to do to start writing your first plugin.
-
-### 1 - Clone the repository where you'd like your plugin to live
-
-```sh
-# via HTTPs
-git clone https://github.com/shortcuts/neovim-plugin-boilerplate.git ~/my-awesome-plugin.nvim
-
-# via SSH
-git clone git@github.com:shortcuts/neovim-plugin-boilerplate.git ~/my-awesome-plugin.nvim
-
+```lua
+-- stable version
+use {"explain-it.nvim", tag = "*" }
+-- dev version
+use {"explain-it.nvim"}
 ```
 
-### 2 - Replace placeholder names with your plugin name
+</td>
+</tr>
+<tr>
+<td>
 
-> **Note**:
-> The placeholder names are purposely written with different casing. Make sure to keep it.
+[junegunn/vim-plug](https://github.com/junegunn/vim-plug)
 
-#### File names
+</td>
+<td>
 
-```sh
-mv plugin/YOUR_PLUGIN_NAME.lua plugin/my-awesome-plugin.lua
-mv README_TEMPLATE.md README.md 
-
+```lua
+-- stable version
+Plug "explain-it.nvim", { "tag": "*" }
+-- dev version
+Plug "explain-it.nvim"
 ```
 
-#### References
+</td>
+</tr>
+<tr>
+<td>
 
-##### Go to the plugin directory and open Neovim:
+[folke/lazy.nvim](https://github.com/folke/lazy.nvim)
 
-```sh
-cd ~/my-awesome-plugin.nvim && nvim .
+</td>
+<td>
+
+```lua
+-- stable version
+require("lazy").setup({{"explain-it.nvim", version = "*"}})
+-- dev version
+require("lazy").setup({"explain-it.nvim"})
 ```
 
-##### Search and replace placeholder occurrences:
+</td>
+</tr>
+</tbody>
+</table>
+</div>
 
-> For Lua and README.md files
+## ☄ Getting started
 
-```vim
-:vimgrep /YourPluginName/ **/*
-:cfdo %s/YourPluginName/MyAwesomePlugin/g | update
+> Describe how to use the plugin the simplest way
 
-:vimgrep /your-plugin-name/ **/*
-:cfdo %s/your-plugin-name/my-awesome-plugin/g | update
+## ⚙ Configuration
+
+> The configuration list sometimes become cumbersome, making it folded by default reduce the noise of the README file.
+
+<details>
+<summary>Click to unfold the full list of options with their default values</summary>
+
+> **Note**: The options are also available in Neovim by calling `:h explain-it.options`
+
+```lua
+require("explain-it").setup({
+    -- you can copy the full list from lua/explain-it/config.lua
+})
 ```
 
-> For GitHub action files
+</details>
 
-```vim
-:vimgrep /your-plugin-name/ .github/**
-:cfdo %s/your-plugin-name/my-awesome-plugin/g | update
-```
+## 🧰 Commands
 
-### 3 - Code
-
-You can now start writing your plugin, make sure the following commands work:
-1. `make deps` to install docs/tests dependencies
-2. `make lint` to format the code
-3. `make documentation` to generate the documentation
-4. `make test` to run the tests
-
-Enjoy!
+|   Command   |         Description        |
+|-------------|----------------------------|
+|  `:Toggle`  |     Enables the plugin.    |
 
 ## ⌨ Contributing
 
 PRs and issues are always welcome. Make sure to provide as much context as possible when opening one.
+
+## 🗞 Wiki
+
+You can find guides and showcase of the plugin on [the Wiki](https://github.com/trevor/explain-it.nvim/wiki)
+
+## 🎭 Motivations
+
+> If alternatives of your plugin exist, you can provide some pros/cons of using yours over the others.
