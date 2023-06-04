@@ -6,8 +6,8 @@
 <p align="center">
     > Simple and effective AI integration with your favorite Neovim text editor! Ask a question, and let robots <code>expl[AI]n-it</code>!
 </p>
-  
-  
+
+![](https://github.com/trevordf/gifs/blob/main/explain_it.gif)
 
 ## See it in Action
 
