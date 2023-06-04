@@ -21,19 +21,19 @@ _[GIF version of the showcase video for mobile users](SHOWCASE_GIF_LINK)_
 ## See it in Action
 
 **Summarize Text**
-![](https://sos2-images.trevorfacer.com/gifs/summarize.gif)
+![summarize](https://sos2-images.trevorfacer.com/gifs/summarize.gif)
 
 **Explain Code**
-![](https://sos2-images.trevorfacer.com/gifs/explain_code.gif)
+![explain_code](https://sos2-images.trevorfacer.com/gifs/explain_code.gif)
 
 **Explain Code ex. 2**
-![](https://sos2-images.trevorfacer.com/gifs/explain_codei_2.gif)
+![explain_code_2](https://sos2-images.trevorfacer.com/gifs/explain_code_2.gif)
 
 **Write Code**
-![](https://sos2-images.trevorfacer.com/gifs/write_fibonacci.gif)
+![fibonacci](https://sos2-images.trevorfacer.com/gifs/write_fibonacci.gif)
 
 **Write Tests**
-![](https://sos2-images.trevorfacer.com/gifs/speed_up.gif)
+![tests](https://sos2-images.trevorfacer.com/gifs/speed_up.gif)
 
 ## Initial Setup
 
