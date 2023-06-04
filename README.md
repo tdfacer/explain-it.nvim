@@ -1,69 +1,62 @@
+
 <p align="center">
-  <h1 align="center">explain-it.nvim</h2>
+  <h1 align="center"><code>expl[AI]n-it.nvim</code></h2>
 </p>
 
 <p align="center">
-    > A catch phrase that describes your plugin.
+    > Simple and effective AI integration with your favorite Neovim text editor! Ask a question, and let robots <code>expl[AI]n-it</code>!
 </p>
-
-<div align="center">
-    > Drag your video (<10MB) here to host it for free on GitHub.
-</div>
-
-<div align="center">
-
-> Video Examples
-
-_[GIF version of the showcase video for mobile users](SHOWCASE_GIF_LINK)_
-
-</div>
+  
+  
 
 ## See it in Action
 
-**Summarize Text**
-![summarize](https://sos2-images.trevorfacer.com/gifs/summarize.gif)
+#### Explain Code
 
-**Explain Code**
-![explain_code](https://sos2-images.trevorfacer.com/gifs/explain_code.gif)
+<details>
+<summary>Visually select a block of text in your buffer, and have ChatGPT tell you what it does! Optionally customize the prompt included in your request.</summary>
+![](https://github.com/trevordf/gifs/blob/main/explain_code.gif)
+</details>
 
-**Explain Code ex. 2**
-![explain_code_2](https://sos2-images.trevorfacer.com/gifs/explain_code_2.gif)
+#### Summarize a Block of Text
 
-**Write Code**
-![fibonacci](https://sos2-images.trevorfacer.com/gifs/write_fibonacci.gif)
+<details>
+<summary>Sick of reading documents? Have ChatGPT summarize what your buffer says.</summary>
+![](https://github.com/trevordf/gifs/blob/main/summarize.gif)
+</details>
 
-**Write Tests**
-![tests](https://sos2-images.trevorfacer.com/gifs/speed_up.gif)
+#### Explain Code ex. 2
 
-## Initial Setup
+<details>
+<summary>Have questions on the full buffer? Shortcut to include everything in your request, no visual selection necessary.</summary>
+![](https://github.com/trevordf/gifs/blob/main/explain_code_2.gif)
+</details>
 
-* Sign up for paid account at https://platform.openai.com/signup
-* Be sure to note pricing! It is recommended to use something like privacy.com to make sure that you do not accidentally exceed your price limit.
+#### Write Unit Tests
+<details>
+<summary>Jump start your unit tests by letting ChatGPT take the first crack at writing them for you.</summary>
+![](https://github.com/trevordf/gifs/blob/main/speed_up.gif)
+</details>
 
-## OpenAI API Reference
+#### Write Code
+<details>
+<summary>Stub out what you need done, and let ChatGPT fill in the blanks.</summary>
+![](https://github.com/trevordf/gifs/blob/main/write_fibonacci.gif)
+</details>
 
-* [chat](https://platform.openai.com/docs/api-reference/chat)
-* [completions](https://platform.openai.com/docs/api-reference/completions)
-* [models](https://platform.openai.com/docs/api-reference/models)
-
-## OpenAI Documentation
-
-* [models](https://platform.openai.com/docs/models/overview)
-
-## Adding New Models
-
-* Identify the model name with a request to `GET https://api.openai.com/v1/models`
-* Make sure the model supports the API you're interested in using (see Model endpoint compatibility [here](https://platform.openai.com/docs/models/model-endpoint-compatibility))
-* Modify the `command`, currently in `./lua/explain-it/services/chat-gpt.lua`, to use the model of interest
-* Make sure you are parsing the response correctly (should work out of the box if you are using the `chat` or `completions` APIs)
 
 ## ⚡️ Features
 
-> Write short sentences describing your plugin features
+> Neovim integration with the ChatGPT API
 
-- FEATURE 1
-- FEATURE ..
-- FEATURE N
+- Send your entire buffer to ChatGPT APIs! This will allow you to do things like:
+  - Explain what code does
+  - Generate code snippets
+  - Write unit tests
+  - Fetch non-code responses, such as document generation or answering questions
+- Keybindings for quick integration with separate models
+- Write responses to text files for persistence
+- Visual selection is supported to
 
 ## 📋 Installation
 
@@ -85,27 +78,28 @@ _[GIF version of the showcase video for mobile users](SHOWCASE_GIF_LINK)_
 <td>
 
 ```lua
--- stable version
-use {"explain-it.nvim", tag = "*" }
--- dev version
-use {"explain-it.nvim"}
-```
-
-</td>
-</tr>
-<tr>
-<td>
-
-[junegunn/vim-plug](https://github.com/junegunn/vim-plug)
-
-</td>
-<td>
-
-```lua
--- stable version
-Plug "explain-it.nvim", { "tag": "*" }
--- dev version
-Plug "explain-it.nvim"
+  use ({
+    '~/code/explain-it.nvim',
+    requires = {
+      "rcarriga/nvim-notify",
+    },
+    config = function ()
+      require "explain-it".setup {
+        -- Prints useful log messages
+        debug = true,
+        -- Customize notification window width
+        max_notification_width = 20,
+        -- Retry API calls
+        max_retries = 3,
+        -- Customize response text file persistence location
+        output_directory = "/tmp/chat_output",
+        -- Toggle splitting responses in notification window
+        split_responses = false,
+        -- Set token limit to prioritize keeping costs low, or increasing quality/length of responses
+        token_limit = 2000,
+      }
+    end
+  })
 ```
 
 </td>
@@ -119,10 +113,28 @@ Plug "explain-it.nvim"
 <td>
 
 ```lua
--- stable version
-require("lazy").setup({{"explain-it.nvim", version = "*"}})
--- dev version
-require("lazy").setup({"explain-it.nvim"})
+  use ({
+    '~/code/explain-it.nvim',
+    requires = {
+      "rcarriga/nvim-notify",
+    },
+    config = function ()
+      require "explain-it".setup {
+      -- Prints useful log messages
+      debug = true,
+      -- Customize notification window width
+      max_notification_width = 20,
+      -- Retry API calls
+      max_retries = 3,
+      -- Customize response text file persistence location
+      output_directory = "/tmp/chat_output",
+      -- Toggle splitting responses in notification window
+      split_responses = false,
+      -- Set token limit to prioritize keeping costs low, or increasing quality/length of responses
+      token_limit = 2000,
+      }
+    end
+  })
 ```
 
 </td>
@@ -132,67 +144,25 @@ require("lazy").setup({"explain-it.nvim"})
 </div>
 
 ## ☄ Getting started
-
-> Describe how to use the plugin the simplest way
+  
+1. Sign up for paid account at https://platform.openai.com/signup
+  1. Be sure to note pricing! It is recommended to use something like privacy.com to make sure that you do not accidentally exceed your price limit. Note that there is a separate charge for _ChatGPT_ usage and _API_ usage. We're after _API_.
+1. After adding payment info, copy your API key and set it as an environment variable in your shell. Here is a command that will add this to your `.zshrc` file:
+    ```
+    echo 'export CHAT_GPT_API_KEY=<replace_with_your_key>' >> ~/.zshrc
+    ```
+1. Install the Plugin using your favorite package manager as described above
 
 ## ⚙ Configuration
 
-> The configuration list sometimes become cumbersome, making it folded by default reduce the noise of the README file.
-
-<details>
-<summary>Click to unfold the full list of options with their default values</summary>
-
-> **Note**: The options are also available in Neovim by calling `:h explain-it.options`
-
-</details>
-
-## 🧰 Commands
-
-|   Command   |         Description        |
-|-------------|----------------------------|
-|  `:Toggle`  |     Enables the plugin.    |
+* Sensible default config values have been set. Customize values using the the standard `setup` function.
+* See `M.options` [here]([url](https://github.com/tdfacer/explain-it.nvim/blob/main/lua/explain-it/config.lua#L5)) for a full list of options.
 
 ## ⌨ Contributing
 
 PRs and issues are always welcome. Make sure to provide as much context as possible when opening one.
 
-## 🗞 Wiki
-
-You can find guides and showcase of the plugin on [the Wiki](https://github.com/trevor/explain-it.nvim/wiki)
-
-## 🎭 Motivations
-
-> If alternatives of your plugin exist, you can provide some pros/cons of using yours over the others.
 
 ## Contributing
 
 * See [CONTRIBUTING.md](./CONTRIBUTING.md)
-* Make sure all functions include [annotations](https://github.com/LuaLS/lua-language-server/wiki/Annotations)
-* Good test examples [here](https://github.com/terrortylor/neovim-environment/blob/045830ffd6ec19b280834fb4ecbdd8f6b36849ba/lua/spec/util/buffer_spec.lua)
-
-* Mocks
-
-```
-local stub = require "luassert.stub"
-    stub(vim.ui, "input")
-      vim.print("### vim.ui.input")
-      for k, _ in pairs(vim.ui.input) do
-        print("### key: " .. k)
-      end
-
-### vim.ui.input
-### key: calls
-### key: returnvals
-### key: returns
-### key: by_default
-### key: target_table
-### key: target_key
-### key: called
-### key: called_with
-### key: clear
-### key: returned_with
-### key: on_call_with
-### key: invokes
-### key: revert
-### key: callback
-```
