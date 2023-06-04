@@ -105,7 +105,7 @@ M.get_formatted_prompt = function(escaped_prompt, question, command_type)
   local with_tokens =
     string.gsub(populated_question, "##TOKEN_LIMIT##", _G.ExplainIt.config.token_limit)
 
-  D.log("chat-gpt.get_formatted_prompt", "prompt: s", with_tokens)
+  D.log("chat-gpt.get_formatted_prompt", "prompt: %s", with_tokens)
   return populated_prompt
 end
 
@@ -117,7 +117,7 @@ end
 M.call_gpt = function(escaped_input, optional_question, prompt_type)
   D.log(
     "chat-gpt.call_chat_gpt",
-    "Making API call to /v1/completions API with prompt: s",
+    "Making API call to /v1/completions API with prompt: %s",
     escaped_input
   )
   local question = M.get_question(optional_question)
@@ -127,7 +127,7 @@ M.call_gpt = function(escaped_input, optional_question, prompt_type)
   M.write_prompt_and_response_to_file(question, M.format_response(json, false))
   return string_util.truncate_string(question, _G.ExplainIt.config.max_notification_width)
     .. "\n\n"
-    .. M.format_response(json, true)
+    .. M.format_response(json, _G.ExplainIt.config.split_responses)
 end
 
 --- Writes the prompt and response to a file so that Chat-GPT responses can be persisted

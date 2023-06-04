@@ -8,6 +8,7 @@ M.options = {
   max_notification_width = 20,
   max_retries = 3,
   output_directory = "/tmp/chat_output",
+  split_responses = false,
   token_limit = 2000,
 }
 

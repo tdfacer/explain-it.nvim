@@ -35,7 +35,7 @@ function ExplainIt.explain_it(opts)
   opts.text = joined
   if opts.custom_prompt then
     vim.ui.input({ prompt = "Enter the custom prompt: " }, function(custom_prompt)
-      print(string.format("custom_prompt: %s", custom_prompt))
+      D.log("init", "custom_prompt: %s", custom_prompt)
       opts.custom_prompt = custom_prompt
       ExplainIt.call_chat_gpt(opts)
     end)
