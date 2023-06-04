@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0 (2023-06-04)
+
+
+### Features
+
+* Initial implementation ([74469fc](https://github.com/tdfacer/explain-it.nvim/commit/74469fc3c7af2fef40cd54e056eadcf47890b46c))
+
 ## [1.1.0](https://github.com/shortcuts/neovim-plugin-boilerplate/compare/v1.0.0...v1.1.0) (2023-03-26)
 
 
