@@ -146,7 +146,7 @@
 ## ☄ Getting started
   
 1. Sign up for paid account at https://platform.openai.com/signup
-  1. Be sure to note pricing! It is recommended to use something like privacy.com to make sure that you do not accidentally exceed your price limit. Note that there is a separate charge for _ChatGPT_ usage and _API_ usage. We're after _API_.
+  1. Be sure to note pricing! It is recommended to use something like privacy.com to make sure that you do not accidentally exceed your price limit. Note that there is a separate charge for _ChatGPT_ usage and _API_ usage. We're after _API_. In my heavy(ish) usage of the plugin while in development, the max charges I saw were about $0.50 / day. Your mileage may vary!!
 1. After adding payment info, copy your API key and set it as an environment variable in your shell. Here is a command that will add this to your `.zshrc` file:
     ```
     echo 'export CHAT_GPT_API_KEY=<replace_with_your_key>' >> ~/.zshrc
@@ -161,7 +161,6 @@
 ## ⌨ Contributing
 
 PRs and issues are always welcome. Make sure to provide as much context as possible when opening one.
-
 
 ## Contributing
 
