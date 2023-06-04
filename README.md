@@ -12,11 +12,28 @@
 
 <div align="center">
 
-> Videos don't work on GitHub mobile, so a GIF alternative can help users.
+> Video Examples
 
 _[GIF version of the showcase video for mobile users](SHOWCASE_GIF_LINK)_
 
 </div>
+
+## See it in Action
+
+**Summarize Text**
+![](https://sos2-images.trevorfacer.com/gifs/summarize.gif)
+
+**Explain Code**
+![](https://sos2-images.trevorfacer.com/gifs/explain_code.gif)
+
+**Explain Code ex. 2**
+![](https://sos2-images.trevorfacer.com/gifs/explain_codei_2.gif)
+
+**Write Code**
+![](https://sos2-images.trevorfacer.com/gifs/write_fibonacci.gif)
+
+**Write Tests**
+![](https://sos2-images.trevorfacer.com/gifs/speed_up.gif)
 
 ## Initial Setup
 
