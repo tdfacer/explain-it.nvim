@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0 (2023-06-04)
+
+
+### Bug Fixes
+
+* easier replace ([2bd1b91](https://github.com/tdfacer/explain-it.nvim/commit/2bd1b91d7afb21082503f1f12a18dbd0497400a6))
+* missing steps in README.md ([6ac7c6f](https://github.com/tdfacer/explain-it.nvim/commit/6ac7c6fab61fd9af968ad476161b06406692ca87))
+
 ## [1.1.0](https://github.com/shortcuts/neovim-plugin-boilerplate/compare/v1.0.0...v1.1.0) (2023-03-26)
 
 
