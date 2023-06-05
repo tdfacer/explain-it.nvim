@@ -89,7 +89,7 @@
 
 ```lua
   use ({
-    '~/code/explain-it.nvim',
+    'tdfacer/explain-it.nvim',
     requires = {
       "rcarriga/nvim-notify",
     },
@@ -124,7 +124,7 @@
 
 ```lua
   use ({
-    '~/code/explain-it.nvim',
+    'tdfacer/explain-it.nvim',
     requires = {
       "rcarriga/nvim-notify",
     },
