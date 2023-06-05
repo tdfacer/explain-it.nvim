@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/tdfacer/explain-it.nvim/compare/v1.0.0...v1.0.1) (2023-06-05)
+
+
+### Bug Fixes
+
+* **makefile:** Fix Makefile scripts ([b092d3b](https://github.com/tdfacer/explain-it.nvim/commit/b092d3b4d2f039b896f7c6f7c4fdbdbb85438d1a))
+
 ## 1.0.0 (2023-06-04)
 
 
