@@ -70,7 +70,7 @@
 
 ## 📋 Installation
 
-<div align="center">
+<div align="left">
 <table>
 <thead>
 <tr>
