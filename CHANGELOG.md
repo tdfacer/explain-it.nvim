@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/tdfacer/explain-it.nvim/compare/v1.0.1...v1.0.2) (2023-06-08)
+
+
+### Bug Fixes
+
+* **setup:** Move setup into config ([#5](https://github.com/tdfacer/explain-it.nvim/issues/5)) ([2b1aaa1](https://github.com/tdfacer/explain-it.nvim/commit/2b1aaa1b52eb64fb57371270c50c384373ee7600))
+
 ## [1.0.1](https://github.com/tdfacer/explain-it.nvim/compare/v1.0.0...v1.0.1) (2023-06-05)
 
 
