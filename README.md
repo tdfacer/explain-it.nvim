@@ -7,7 +7,7 @@
     > Simple and effective AI integration with your favorite Neovim text editor! Ask a question, and let robots <code>expl[AI]n-it</code>!
 </p>
   
-![](https://github.com/trevordf/gifs/blob/main/explain-it.png)  
+![](https://github.com/trevordf/gifs/blob/main/explain-it.png)
 
 ## See it in Action
 
@@ -54,6 +54,14 @@
   
 </details>
 
+## 🚀 Try it in Docker
+
+> Try it in a minimal container, no commitment necessary
+
+1. Set your API key in your terminal (`export CHAT_GPT_API_KEY=<replace_with_your_key>`)
+1. Execute `make docker`
+
+![](https://github.com/trevordf/gifs/blob/main/docker.png)
 
 ## ⚡️ Features
 

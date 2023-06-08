@@ -36,6 +36,17 @@ documentation-ci: deps documentation
 lint:
 	stylua .
 
+# docker build
+docker-build:
+	cd docker; ./build.sh
+
+# docker run
+docker-run:
+	./docker/run.sh
+
+# docker build and run
+docker: docker-build docker-run
+
 # setup
 setup:
 	./scripts/setup.sh
