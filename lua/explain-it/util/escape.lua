@@ -9,6 +9,7 @@ M.escape = function(input)
     ["'"] = "'\\''",
     ["\n"] = "\\\n",
     ["\t"] = "  ",
+    ["\\"] = "\\\\",
   }
   local res, _ = string.gsub(input, ".", matches)
   return res

@@ -56,7 +56,19 @@ function ExplainIt.call_chat_gpt(opts)
     D.log("ExplainIt.call_chat_gpt", "using chat")
     response = chat_gpt.call_gpt(opts.text, custom_prompt, "chat_command")
   end
-  notify(response)
+
+  if opts.append_current_buffer then
+    D.log("init", "writing response to current buffer")
+    local lines = {}
+    for line in response:gmatch("[^\n]+") do
+      table.insert(lines, line)
+    end
+    -- local res, _ = string.gsub(response, "\n", "\\n")
+    vim.api.nvim_buf_set_lines(0, -1, -1, false, lines)
+    -- string.gsub(response, "\n", "\\n")
+  else
+    notify(response)
+  end
 end
 
 _G.ExplainIt = ExplainIt

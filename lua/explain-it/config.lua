@@ -10,6 +10,8 @@ M.options = {
   output_directory = "/tmp/chat_output",
   split_responses = false,
   token_limit = 2000,
+  append_current_buffer = false,
+  default_prompt = "Please answer the following question: ",
 }
 
 ---@param options table Module config table. See |M.options|.
@@ -44,6 +46,18 @@ function M.setup(options)
   end, opts)
   vim.keymap.set("v", "<space>X", function()
     require("explain-it").explain_it { custom_prompt = true, api_type = "chat", is_visual = true }
+  end, opts)
+  vim.keymap.set("n", "<space>v", function()
+    require("explain-it").explain_it { custom_prompt = false, api_type = "chat", append_current_buffer = true }
+  end, opts)
+  vim.keymap.set("v", "<space>v", function()
+    require("explain-it").explain_it { custom_prompt = false, api_type = "chat", is_visual = true, append_current_buffer = true }
+  end, opts)
+  vim.keymap.set("n", "<space>V", function()
+    require("explain-it").explain_it { custom_prompt = true, api_type = "chat", append_current_buffer = true }
+  end, opts)
+  vim.keymap.set("v", "<space>V", function()
+    require("explain-it").explain_it { custom_prompt = true, api_type = "chat", is_visual = true, append_current_buffer = true }
   end, opts)
 
   return M.options
