@@ -1,18 +1,21 @@
 # we disable the `all` command because some external tool might run it automatically
 .SUFFIXES:
+SHELL := /bin/bash
 
 all:
 
 run:
 	nvim --cmd "set rtp+=./" --cmd 'lua require("explain-it").setup()' -o lua/explain-it/init.lua
 
-test:
+test: deps
 	nvim --version | head -n 1 && echo ''
-	nvim --headless \
-		-c "set rtp+=./" \
-		-c "set rtp+=./deps/nvim-notify" \
-		-c "set rtp+=./deps/plenary.nvim" \
-		-c "PlenaryBustedDirectory lua/tests/"
+	export XDG_CONFIG_HOME=""; \
+	export XDG_DATA_HOME=""; \
+	nvim \
+	--headless \
+	--clean \
+		-u "./scripts/test_init.lua" \
+		-c "PlenaryBustedDirectory ./lua/tests/ { minimal_init = './scripts/test_init.lua' }"
 
 
 # installs `mini.nvim`, used for both the tests and documentation.
@@ -23,7 +26,7 @@ deps:
 	git clone --depth 1 https://github.com/nvim-lua/plenary.nvim deps/plenary.nvim
 
 # installs deps before running tests, useful for the CI.
-test-ci: deps test
+test-ci: test
 
 # generates the documentation.
 documentation:
