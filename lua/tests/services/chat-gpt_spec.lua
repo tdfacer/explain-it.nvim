@@ -63,8 +63,19 @@ describe("chat-gpt", function()
   end)
 
   it("should get default question based on filetype", function()
+    local vim_mock = mock(vim.bo, true)
+    vim_mock.filetype = "markdown"
     local question = chat_gpt.get_question ""
-    assert.are.equal(question, "what does this code do?")
+    assert.are.equal(question, "Explain this block of text:")
+    mock.revert(vim_mock)
+  end)
+
+  it("should get default question based on filetype", function()
+    local vim_mock = mock(vim.bo, true)
+    vim_mock.filetype = "lua"
+    local question = chat_gpt.get_question ""
+    assert.are.equal(question, "What does this code do?")
+    mock.revert(vim_mock)
   end)
 
   it("should get formatted prompt correctly - no api key", function()
