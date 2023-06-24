@@ -4,7 +4,7 @@ local stub = require "luassert.stub"
 describe("system", function()
   before_each(function()
     require("explain-it").setup {
-      output_directory = ".",
+      output_directory = "/tmp",
     }
   end)
 
@@ -39,6 +39,9 @@ describe("system", function()
       local temp_file = system.make_temp_file()
       assert.is_string(temp_file)
       assert.are_equal(vim.fn.isdirectory ".", 1)
+
+      -- clean up temporary test file
+      system.make_system_call("rm -rf " .. temp_file)
     end)
 
     it("should throw an error if it fails to create a temporary file", function()

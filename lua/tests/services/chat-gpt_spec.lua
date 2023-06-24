@@ -4,7 +4,30 @@ package.path = package.path
 
 describe("chat-gpt", function()
   local chat_gpt = require "explain-it.services.chat-gpt"
+  local system = require "explain-it.system"
   local file_type = vim.bo.filetype
+
+  local example_response = {
+    id = "chatcmpl-7UxZTPAoyikcM4fW1ZLJjRBYUyPlq",
+    object = "chat.completion",
+    created = 1687613187,
+    model = "gpt-3.5-turbo-0301",
+    choices = {
+      {
+        index = 0,
+        message = {
+          role = "assistant",
+          content = "This code sets up a test environment using the Lua testing framework \"busted\". Specifically, it sets up a \"before each\" hook that will run before each test case. \n\nWithin this hook, it loads a module called \"explain-it\" and sets some configuration options for it. This module appears to be related to generating documentation or explanations for code. The \"token_limit\" option sets a limit on the number of tokens (i.e. individual words or symbols) that can be included in each explanation. The \"output_directory\" option specifies where the generated documentation should be saved.\n\nFinally, the code sets the filetype of the current buffer in the Vim editor to a value stored in the \"file_type\" variable. This may be relevant for testing code that depends on specific filetypes or syntax highlighting."
+        },
+        finish_reason = "stop"
+      }
+    },
+    usage = {
+      prompt_tokens = 61,
+      completion_tokens = 161,
+      total_tokens = 222
+    }
+  }
 
   before_each(function()
     require("explain-it").setup {
@@ -13,9 +36,6 @@ describe("chat-gpt", function()
     }
     vim.bo.filetype = file_type
   end)
-
-  -- local chat_gpt = require("../../explain-it.services.chat-gpt")
-  -- local string_util = require "explain-it.util.strings"
 
   it("should format response correctly", function()
     local response_json = {
@@ -57,6 +77,7 @@ describe("chat-gpt", function()
     assert.has_error(function()
       chat_gpt.get_formatted_prompt(escaped_prompt, question, command_type)
     end, "Failed to get API key. Is CHAT_GPT_API_KEY env var set?")
+    mock.revert(mock_os)
   end)
 
   it("should get formatted prompt correctly - chat_command", function()
@@ -72,6 +93,7 @@ describe("chat-gpt", function()
       formatted_prompt,
       '  curl https://api.openai.com/v1/chat/completions \\\n    2>/dev/null \\\n    -H "Content-Type: application/json" \\\n    -H "Authorization: Bearer FAKE KEY" \\\n    -d \'{\n      "model": "gpt-3.5-turbo-0301",\n      "messages": [{"role": "user", "content": "What does this code do?\\nThis is an escaped prompt"}],\n      "max_tokens": 2000,\n      "temperature": 0.2\n    }\'\n'
     )
+    mock.revert(mock_os)
   end)
 
   it("should get formatted prompt correctly - completion_command", function()
@@ -87,14 +109,22 @@ describe("chat-gpt", function()
       formatted_prompt,
       '  curl https://api.openai.com/v1/completions \\\n    2>/dev/null \\\n    -H "Content-Type: application/json" \\\n    -H "Authorization: Bearer FAKE KEY" \\\n    -d \'{\n      "model": "text-davinci-003",\n      "prompt": "What does this code do?\\nThis is an escaped prompt",\n      "max_tokens": 2000,\n      "temperature": 0\n    }\'\n'
     )
+    mock.revert(mock_os)
   end)
 
   it("should call ChatGPT API correctly", function()
+    local mock_os = mock(os, true)
+    mock_os.getenv.returns "FAKE KEYZUS"
+
+    local mock_system = mock(system, true)
+    mock_system.make_system_call_with_retry.returns(example_response)
     local escaped_input = "This is an escaped input"
     local optional_question = "What does this code do?"
     local prompt_type = "completion_command"
     local response = chat_gpt.call_gpt(escaped_input, optional_question, prompt_type)
     assert.are.equal(type(response), "string")
+    mock.revert(mock_os)
+    mock.revert(mock_system)
   end)
 
   it("should write prompt and response to file correctly", function()
