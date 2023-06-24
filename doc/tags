@@ -9,7 +9,7 @@ M.format_string_with_line_breaks()	explain-it.txt	/*M.format_string_with_line_br
 M.get_buffer_lines()	explain-it.txt	/*M.get_buffer_lines()*
 M.get_escaped_string()	explain-it.txt	/*M.get_escaped_string()*
 M.get_filetype()	explain-it.txt	/*M.get_filetype()*
-M.get_formatted_prompt()	explain-it.txt	/*M.get_formatted_prompt()*
+M.get_formatted_command()	explain-it.txt	/*M.get_formatted_command()*
 M.get_question()	explain-it.txt	/*M.get_question()*
 M.get_visual_selection()	explain-it.txt	/*M.get_visual_selection()*
 M.make_system_call()	explain-it.txt	/*M.make_system_call()*
