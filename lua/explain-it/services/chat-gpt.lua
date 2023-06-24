@@ -13,7 +13,7 @@ local completion_command = [[
     -H "Authorization: Bearer ##API_KEY##" \
     -d '{
       "model": "text-davinci-003",
-      "prompt": "##PROMPT##\n##LINES##",
+      "prompt": "##OPTIONAL_QUESTION##\n##ESCAPED_INPUT##",
       "max_tokens": 2000,
       "temperature": 0
     }'
@@ -27,7 +27,7 @@ local chat_command = [[
     -H "Authorization: Bearer ##API_KEY##" \
     -d '{
       "model": "gpt-3.5-turbo-0301",
-      "messages": [{"role": "user", "content": "##PROMPT##\n##LINES##"}],
+      "messages": [{"role": "user", "content": "##OPTIONAL_QUESTION##\n##ESCAPED_INPUT##"}],
       "max_tokens": 2000,
       "temperature": 0.2
     }'
@@ -75,37 +75,36 @@ end
 ---@param question string|nil
 ---@return string
 M.get_question = function(question)
-  local ft = M.get_filetype()
   if question == nil or question == "" then
-    if M.get_filetype() == "markdown" then
-      question = "summarize this block of text:"
-    else
-      question = "what does this code do?"
+    local ft = M.get_filetype()
+    question = _G.ExplainIt.config.default_prompts[ft]
+    if not question then
+      question = "Explain this:"
     end
   end
   return question
 end
 
 --- Uses a local command and replaces placeholder text with the ChatGPT API Key from an env var and placeholder text with the prompt
----@param escaped_prompt string
+---@param escaped_input string
 ---@param question string
 ---@param command_type commands
 ---@return string
-M.get_formatted_prompt = function(escaped_prompt, question, command_type)
+M.get_formatted_command = function(escaped_input, question, command_type)
   local command_str = command_type == "chat_command" and COMMANDS.chat or COMMANDS.completion
   local api_key = os.getenv "CHAT_GPT_API_KEY"
   if not api_key or api_key == "" then
-    D.log("chat-gpt.get_formatted_prompt", "Failed to get CHAT_GPT_API_KEY")
+    D.log("chat-gpt.get_formatted_command", "Failed to get CHAT_GPT_API_KEY")
     error "Failed to get API key. Is CHAT_GPT_API_KEY env var set?"
   end
   local populated_token = string.gsub(command_str, "##API_KEY##", api_key)
 
-  local populated_question = string.gsub(populated_token, "##PROMPT##", question)
-  local populated_prompt = string.gsub(populated_question, "##LINES##", escaped_prompt)
+  local populated_question = string.gsub(populated_token, "##OPTIONAL_QUESTION##", question)
+  local populated_prompt = string.gsub(populated_question, "##ESCAPED_INPUT##", escaped_input)
   local with_tokens =
     string.gsub(populated_question, "##TOKEN_LIMIT##", _G.ExplainIt.config.token_limit)
 
-  D.log("chat-gpt.get_formatted_prompt", "prompt: %s", with_tokens)
+  D.log("chat-gpt.get_formatted_command", "prompt: %s", with_tokens)
   return populated_prompt
 end
 
@@ -121,7 +120,7 @@ M.call_gpt = function(escaped_input, optional_question, prompt_type)
     escaped_input
   )
   local question = M.get_question(optional_question)
-  local formatted_prompt = M.get_formatted_prompt(escaped_input, question, prompt_type)
+  local formatted_prompt = M.get_formatted_command(escaped_input, question, prompt_type)
   D.log("chat-gpt.call_chat_gpt", "prompt: %s", formatted_prompt)
   local json = system.make_system_call_with_retry(formatted_prompt)
   M.write_prompt_and_response_to_file(question, M.format_response(json, false))
