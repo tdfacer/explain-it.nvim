@@ -138,5 +138,8 @@ describe("chat-gpt", function()
     local file_content = fh:read "*all"
     fh:close()
     assert.are.equal(file_content, "What does this code do?\n\n\n\nThis is a response")
+
+    -- clean up temporary test file
+    system.make_system_call("rm -rf " .. temp_file)
   end)
 end)
