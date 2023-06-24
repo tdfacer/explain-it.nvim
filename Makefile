@@ -4,8 +4,15 @@ SHELL := /bin/bash
 
 all:
 
+# run with minimal config
 run:
-	nvim --cmd "set rtp+=./" --cmd 'lua require("explain-it").setup()' -o lua/explain-it/init.lua
+	export XDG_CONFIG_HOME=""; \
+	export XDG_DATA_HOME=""; \
+	nvim \
+	--clean \
+		-u "./scripts/test_init.lua" \
+		-c 'lua require("explain-it").setup()' \
+		-o lua/explain-it/init.lua
 
 test: deps
 	nvim --version | head -n 1 && echo ''
@@ -16,7 +23,6 @@ test: deps
 	--clean \
 		-u "./scripts/test_init.lua" \
 		-c "PlenaryBustedDirectory ./lua/tests/ { minimal_init = './scripts/test_init.lua' }"
-
 
 # installs `mini.nvim`, used for both the tests and documentation.
 deps:
