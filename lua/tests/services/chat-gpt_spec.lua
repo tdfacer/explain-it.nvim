@@ -55,7 +55,7 @@ describe("chat-gpt", function()
     ---@type completion_command
     local command_type = "completion_command"
     assert.has_error(function()
-      chat_gpt.get_formatted_prompt(escaped_prompt, question, command_type)
+      chat_gpt.get_formatted_command(escaped_prompt, question, command_type)
     end, "Failed to get API key. Is CHAT_GPT_API_KEY env var set?")
   end)
 
@@ -67,7 +67,7 @@ describe("chat-gpt", function()
     ---@type chat_command
     local command_type = "chat_command"
 
-    local formatted_prompt = chat_gpt.get_formatted_prompt(escaped_prompt, question, command_type)
+    local formatted_prompt = chat_gpt.get_formatted_command(escaped_prompt, question, command_type)
     assert.are.equal(
       formatted_prompt,
       '  curl https://api.openai.com/v1/chat/completions \\\n    2>/dev/null \\\n    -H "Content-Type: application/json" \\\n    -H "Authorization: Bearer FAKE KEY" \\\n    -d \'{\n      "model": "gpt-3.5-turbo-0301",\n      "messages": [{"role": "user", "content": "What does this code do?\\nThis is an escaped prompt"}],\n      "max_tokens": 2000,\n      "temperature": 0.2\n    }\'\n'
@@ -82,7 +82,7 @@ describe("chat-gpt", function()
     ---@type completion_command
     local command_type = "completion_command"
 
-    local formatted_prompt = chat_gpt.get_formatted_prompt(escaped_prompt, question, command_type)
+    local formatted_prompt = chat_gpt.get_formatted_command(escaped_prompt, question, command_type)
     assert.are.equal(
       formatted_prompt,
       '  curl https://api.openai.com/v1/completions \\\n    2>/dev/null \\\n    -H "Content-Type: application/json" \\\n    -H "Authorization: Bearer FAKE KEY" \\\n    -d \'{\n      "model": "text-davinci-003",\n      "prompt": "What does this code do?\\nThis is an escaped prompt",\n      "max_tokens": 2000,\n      "temperature": 0\n    }\'\n'

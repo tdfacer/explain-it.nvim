@@ -13,7 +13,7 @@ local completion_command = [[
     -H "Authorization: Bearer ##API_KEY##" \
     -d '{
       "model": "text-davinci-003",
-      "prompt": "##PROMPT##\n##LINES##",
+      "prompt": "##OPTIONAL_QUESTION##\n##ESCAPED_INPUT##",
       "max_tokens": 2000,
       "temperature": 0
     }'
@@ -27,7 +27,7 @@ local chat_command = [[
     -H "Authorization: Bearer ##API_KEY##" \
     -d '{
       "model": "gpt-3.5-turbo-0301",
-      "messages": [{"role": "user", "content": "##PROMPT##\n##LINES##"}],
+      "messages": [{"role": "user", "content": "##OPTIONAL_QUESTION##\n##ESCAPED_INPUT##"}],
       "max_tokens": 2000,
       "temperature": 0.2
     }'
@@ -82,12 +82,14 @@ M.get_question = function(question)
   return question
 end
 
+-- M.get_formatted_prompt = function()
+
 --- Uses a local command and replaces placeholder text with the ChatGPT API Key from an env var and placeholder text with the prompt
----@param escaped_prompt string
+---@param escaped_input string
 ---@param question string
 ---@param command_type commands
 ---@return string
-M.get_formatted_prompt = function(escaped_prompt, question, command_type)
+M.get_formatted_command = function(escaped_input, question, command_type)
   local command_str = command_type == "chat_command" and COMMANDS.chat or COMMANDS.completion
   local api_key = os.getenv "CHAT_GPT_API_KEY"
   if not api_key or api_key == "" then
@@ -96,8 +98,8 @@ M.get_formatted_prompt = function(escaped_prompt, question, command_type)
   end
   local populated_token = string.gsub(command_str, "##API_KEY##", api_key)
 
-  local populated_question = string.gsub(populated_token, "##PROMPT##", question)
-  local populated_prompt = string.gsub(populated_question, "##LINES##", escaped_prompt)
+  local populated_question = string.gsub(populated_token, "##OPTIONAL_QUESTION##", question)
+  local populated_prompt = string.gsub(populated_question, "##ESCAPED_INPUT##", escaped_input)
   local with_tokens =
     string.gsub(populated_question, "##TOKEN_LIMIT##", _G.ExplainIt.config.token_limit)
 
@@ -105,11 +107,18 @@ M.get_formatted_prompt = function(escaped_prompt, question, command_type)
   return populated_prompt
 end
 
+
+---@class AIResponse
+---@field prompt string
+---@field input string
+---@field response string|table
+---@return AIResponse
+
 --- Formats input in order to make an API call to ChatGPT, makes the API call, writes the prompt and response to a file, then returns the response
 ---@param escaped_input any
 ---@param optional_question any
 ---@param prompt_type any
----@return string
+---@return AIResponse
 M.call_gpt = function(escaped_input, optional_question, prompt_type)
   D.log(
     "chat-gpt.call_chat_gpt",
@@ -117,25 +126,39 @@ M.call_gpt = function(escaped_input, optional_question, prompt_type)
     escaped_input
   )
   local question = M.get_question(optional_question)
-  local formatted_prompt = M.get_formatted_prompt(escaped_input, question, prompt_type)
+  local formatted_prompt = M.get_formatted_command(escaped_input, question, prompt_type)
   local json = system.make_system_call_with_retry(formatted_prompt)
-  M.write_prompt_and_response_to_file(question, M.format_response(json, false))
-  return string_util.truncate_string(question, _G.ExplainIt.config.max_notification_width)
-    .. "\n\n"
-    .. M.format_response(json, _G.ExplainIt.config.split_responses)
+  ---@type AIResponse
+  local ai_response = {
+    input = escaped_input,
+    prompt = formatted_prompt,
+    response = M.format_response(json, false),
+  }
+  D.log("chat-gpt.call_gpt", "response: %s", vim.inspect(ai_response))
+  -- M.write_prompt_and_response_to_file(formatted_prompt, M.format_response(json, false))
+  M.write_prompt_and_response_to_file(ai_response)
+  return ai_response
+  -- return string_util.truncate_string(formatted_prompt, _G.ExplainIt.config.max_notification_width)
+  --   .. "\n\n"
+  --   .. M.format_response(json, _G.ExplainIt.config.split_responses)
 end
 
+-- ---@param prompt string
+-- ---@param response any
+-- --
+
 --- Writes the prompt and response to a file so that Chat-GPT responses can be persisted
----@param prompt string
----@param response any
+---@param response AIResponse
 ---@return string
-M.write_prompt_and_response_to_file = function(prompt, response)
+M.write_prompt_and_response_to_file = function(response)
   local temp_file = system.make_temp_file() or "/tmp/explain_it_output.txt"
   local fh = io.open(string.gsub(temp_file, "\n", ""), "w+")
   if fh ~= nil then
-    fh:write(string.format("%s\n\n", prompt))
+    fh:write(string.format("%s\n\n", response.prompt))
     fh:write "\n\n"
-    fh:write(response)
+    fh:write(string.format("%s\n\n", response.input))
+    fh:write "\n\n"
+    fh:write(vim.inspect(response.response))
     fh:close()
   end
   print("Response written to: " .. temp_file)
