@@ -4,11 +4,13 @@ local M = {}
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 M.options = {
   -- Prints useful logs about what event are triggered, and reasons actions are executed.
-  debug = true,
-  max_notification_width = 20,
+  append_current_buffer = false,
+  debug = false,
+  default_prompt = "Please answer this question:",
+  max_notification_width = 200,
   max_retries = 3,
-  output_directory = "/tmp/chat_output",
-  split_responses = false,
+  output_directory = "/tmp/explain_it_output",
+  split_responses = true,
   token_limit = 2000,
 }
 

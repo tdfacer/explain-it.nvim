@@ -11,7 +11,7 @@ run:
 	nvim \
 	--clean \
 		-u "./scripts/test_init.lua" \
-		-c 'lua require("explain-it").setup()' \
+		-c 'lua require("explain-it").setup({ debug = true, token_limit = 500, output_directory = "/tmp/explain_it_dev" })' \
 		-o lua/explain-it/init.lua
 
 test: deps
