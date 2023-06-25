@@ -145,22 +145,34 @@ describe("chat-gpt", function()
     local optional_question = "What does this code do?"
     local prompt_type = "completion_command"
     local response = chat_gpt.call_gpt(escaped_input, optional_question, prompt_type)
-    assert.are.equal(type(response), "string")
+    assert.are.equal(type(response), "table")
     mock.revert(mock_os)
     mock.revert(mock_system)
   end)
 
   it("should write prompt and response to file correctly", function()
-    local prompt = "What does this code do?"
-    local response = "This is a response"
-    local temp_file = chat_gpt.write_ai_response_to_file(prompt, response)
+    local ai_response = {
+      question = "some question",
+      input = "some input",
+      response = "some response"
+    }
+    local temp_file = chat_gpt.write_ai_response_to_file(ai_response)
     local fh, err = io.open(temp_file, "r")
     if err or not fh then
       error "failed to get fh"
     end
     local file_content = fh:read "*all"
     fh:close()
-    assert.are.equal(file_content, "What does this code do?\n\n\n\nThis is a response")
+    local expected = [[## Question:
+some question
+
+## Input:
+some input
+
+## Response:
+some response]]
+    -- assert.are.equal(file_content, "What does this code do?\n\n\n\nThis is a response")
+    assert.are.equal(file_content, expected)
 
     -- clean up temporary test file
     system.make_system_call("rm -rf " .. temp_file)
