@@ -12,9 +12,10 @@ M.options = {
   split_responses = true,
   token_limit = 2000,
   default_prompts = {
-    ["markdown"] = "Explain this block of text:",
+    ["markdown"] = "Answer this question:",
     ["txt"] = "Explain this block of text:",
     ["lua"] = "What does this code do?",
+    ["zsh"] = "Answer this question:",
   }
 }
 
