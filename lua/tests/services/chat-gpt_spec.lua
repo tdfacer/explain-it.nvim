@@ -33,6 +33,10 @@ describe("chat-gpt", function()
     require("explain-it").setup {
       token_limit = 2000,
       output_directory = ".",
+      default_prompts = {
+        ["markdown"] = "Answer this question in the markdown file:",
+        ["custom"] = "Answer this custom question:",
+      }
     }
     vim.bo.filetype = file_type
   end)
@@ -62,15 +66,23 @@ describe("chat-gpt", function()
     assert.are.equal(question, "arbitrary question")
   end)
 
-  it("should get default question based on filetype", function()
+  it("should get default question based on filetype (markdown)", function()
     local vim_mock = mock(vim.bo, true)
     vim_mock.filetype = "markdown"
     local question = chat_gpt.get_question ""
-    assert.are.equal(question, "Explain this block of text:")
+    assert.are.equal(question, "Answer this question in the markdown file:")
     mock.revert(vim_mock)
   end)
 
-  it("should get default question based on filetype", function()
+  it("should get default question based on filetype (custom)", function()
+    local vim_mock = mock(vim.bo, true)
+    vim_mock.filetype = "custom"
+    local question = chat_gpt.get_question ""
+    assert.are.equal(question, "Answer this custom question:")
+    mock.revert(vim_mock)
+  end)
+
+  it("should get default question based on filetype (default)", function()
     local vim_mock = mock(vim.bo, true)
     vim_mock.filetype = "lua"
     local question = chat_gpt.get_question ""
