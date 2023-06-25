@@ -83,31 +83,31 @@ describe("call_chat_gpt", function()
   end)
 
   it("should call chat_gpt.call_gpt with completion api if api_type is completion", function()
-    chat_gpt.call_gpt.returns({
+    chat_gpt.call_gpt.returns {
       question = "some question",
       input = "some input",
-      response = "some response"
-    })
+      response = "some response",
+    }
     ExplainIt.call_chat_gpt { api_type = "completion", text = "text" }
     assert.stub(chat_gpt.call_gpt).was_called_with("text", nil, "command")
   end)
 
   it("should call chat_gpt.call_gpt with chat api if api_type is not completion", function()
-    chat_gpt.call_gpt.returns({
+    chat_gpt.call_gpt.returns {
       question = "some question",
       input = "some input",
-      response = "some response"
-    })
+      response = "some response",
+    }
     ExplainIt.call_chat_gpt { api_type = "chat", text = "text" }
     assert.stub(chat_gpt.call_gpt).was_called_with("text", nil, "chat_command")
   end)
 
   it("should call chat_gpt.call_gpt with custom prompt if custom_prompt is provided", function()
-    chat_gpt.call_gpt.returns({
+    chat_gpt.call_gpt.returns {
       question = "some question",
       input = "some input",
-      response = "some response"
-    })
+      response = "some response",
+    }
     ExplainIt.call_chat_gpt {
       api_type = "completion",
       text = "text",
@@ -120,7 +120,7 @@ describe("call_chat_gpt", function()
     chat_gpt.call_gpt.returns {
       question = "some question",
       input = "some input",
-      response = "some response"
+      response = "some response",
     }
     ExplainIt.call_chat_gpt { api_type = "completion", text = "text" }
     local expected = [[  Question:

@@ -145,11 +145,11 @@ M.write_ai_response_to_file = function(ai_response)
   local temp_file = system.make_temp_file() or "/tmp/explain_it_output.txt"
   local fh = io.open(string.gsub(temp_file, "\n", ""), "w+")
   if fh ~= nil then
-    fh:write("## Question:\n")
+    fh:write "## Question:\n"
     fh:write(string.format("%s\n\n", ai_response.question))
-    fh:write("## Input:\n")
+    fh:write "## Input:\n"
     fh:write(string.format("%s\n\n", ai_response.input))
-    fh:write("## Response:\n")
+    fh:write "## Response:\n"
     fh:write(string.format("%s", ai_response.response))
     fh:close()
   end

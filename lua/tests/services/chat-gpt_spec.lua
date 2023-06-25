@@ -17,16 +17,16 @@ describe("chat-gpt", function()
         index = 0,
         message = {
           role = "assistant",
-          content = "This code sets up a test environment using the Lua testing framework \"busted\". Specifically, it sets up a \"before each\" hook that will run before each test case. \n\nWithin this hook, it loads a module called \"explain-it\" and sets some configuration options for it. This module appears to be related to generating documentation or explanations for code. The \"token_limit\" option sets a limit on the number of tokens (i.e. individual words or symbols) that can be included in each explanation. The \"output_directory\" option specifies where the generated documentation should be saved.\n\nFinally, the code sets the filetype of the current buffer in the Vim editor to a value stored in the \"file_type\" variable. This may be relevant for testing code that depends on specific filetypes or syntax highlighting."
+          content = 'This code sets up a test environment using the Lua testing framework "busted". Specifically, it sets up a "before each" hook that will run before each test case. \n\nWithin this hook, it loads a module called "explain-it" and sets some configuration options for it. This module appears to be related to generating documentation or explanations for code. The "token_limit" option sets a limit on the number of tokens (i.e. individual words or symbols) that can be included in each explanation. The "output_directory" option specifies where the generated documentation should be saved.\n\nFinally, the code sets the filetype of the current buffer in the Vim editor to a value stored in the "file_type" variable. This may be relevant for testing code that depends on specific filetypes or syntax highlighting.',
         },
-        finish_reason = "stop"
-      }
+        finish_reason = "stop",
+      },
     },
     usage = {
       prompt_tokens = 61,
       completion_tokens = 161,
-      total_tokens = 222
-    }
+      total_tokens = 222,
+    },
   }
 
   before_each(function()
@@ -36,7 +36,7 @@ describe("chat-gpt", function()
       default_prompts = {
         ["markdown"] = "Answer this question in the markdown file:",
         ["custom"] = "Answer this custom question:",
-      }
+      },
     }
     vim.bo.filetype = file_type
   end)
@@ -154,7 +154,7 @@ describe("chat-gpt", function()
     local ai_response = {
       question = "some question",
       input = "some input",
-      response = "some response"
+      response = "some response",
     }
     local temp_file = chat_gpt.write_ai_response_to_file(ai_response)
     local fh, err = io.open(temp_file, "r")

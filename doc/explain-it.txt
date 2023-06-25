@@ -39,10 +39,11 @@ Plugin default config values:
     split_responses = true,
     token_limit = 2000,
     default_prompts = {
-      ["markdown"] = "Explain this block of text:",
+      ["markdown"] = "Answer this question:",
       ["txt"] = "Explain this block of text:",
       ["lua"] = "What does this code do?",
-    }
+      ["zsh"] = "Answer this question:",
+    },
   }
 
 <
@@ -86,6 +87,14 @@ Creates a temporary file on the operating system
 
 ==============================================================================
 ------------------------------------------------------------------------------
+Class~
+{AIResponse}
+Fields~
+{question} `(string)`
+{input} `(string)`
+{response} `(string|table)`
+
+------------------------------------------------------------------------------
                                                             *completion_command*
                               `completion_command`
 
@@ -99,14 +108,14 @@ Creates a temporary file on the operating system
 commands
 
 ------------------------------------------------------------------------------
-                                                           *M.format_response()*
-                 `M.format_response`({response_json}, {split})
+                                                            *M.parse_response()*
+                  `M.parse_response`({response_json}, {split})
 Formats a response string to extract the chat-gpt response (or error) from the API response. Includes logic to be API agnostic for either the completion or the chat API
 Parameters~
 {response_json} `(table)`
 {split} `(boolean)`
 Return~
-`(string|table)`
+`(string)`
 
 ------------------------------------------------------------------------------
                                                               *M.get_filetype()*
@@ -144,15 +153,14 @@ Parameters~
 {optional_question} `(any)`
 {prompt_type} `(any)`
 Return~
-`(string)`
+AIResponse
 
 ------------------------------------------------------------------------------
-                                         *M.write_prompt_and_response_to_file()*
-          `M.write_prompt_and_response_to_file`({prompt}, {response})
+                                                 *M.write_ai_response_to_file()*
+                  `M.write_ai_response_to_file`({ai_response})
 Writes the prompt and response to a file so that Chat-GPT responses can be persisted
 Parameters~
-{prompt} `(string)`
-{response} `(any)`
+{ai_response} AIResponse
 Return~
 `(string)`
 
@@ -173,6 +181,14 @@ Return~
 Get all lines in current buffer
 Return~
 `(string)`
+
+------------------------------------------------------------------------------
+                                                       *M.append_buffer_lines()*
+                  `M.append_buffer_lines`({bufnr}, {content})
+content to buffer
+Parameters~
+{bufnr} `(number)`
+{content} `(string)`
 
 
 ==============================================================================

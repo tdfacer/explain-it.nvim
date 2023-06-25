@@ -1,9 +1,9 @@
-local plenary_dir = os.getenv("PLENARY_DIR") or "./deps/plenary.nvim"
-local notify_dir = os.getenv("NOTIFY_DIR") or "./deps/nvim-notify"
+local plenary_dir = os.getenv "PLENARY_DIR" or "./deps/plenary.nvim"
+local notify_dir = os.getenv "NOTIFY_DIR" or "./deps/nvim-notify"
 
 local deps = {
   plenary_dir,
-  notify_dir
+  notify_dir,
 }
 
 local function check_dep_exists(dep_dir)
@@ -14,19 +14,19 @@ local function check_dep_exists(dep_dir)
   end
 end
 
-vim.opt.rtp:append(".")
+vim.opt.rtp:append "."
 for _, dep in ipairs(deps) do
   check_dep_exists(dep)
-vim.opt.rtp:append(dep)
+  vim.opt.rtp:append(dep)
 end
 
 vim.opt.termguicolors = true
-vim.cmd("runtime plugin/plenary.vim")
-require("plenary.busted")
+vim.cmd "runtime plugin/plenary.vim"
+require "plenary.busted"
 
-require("notify").setup({
+require("notify").setup {
   background_colour = "#000000",
-})
+}
 
 local opts = { noremap = true, silent = true }
 vim.keymap.set("n", "<space>z", require("explain-it").explain_it, opts)

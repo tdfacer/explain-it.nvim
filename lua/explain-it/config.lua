@@ -16,7 +16,7 @@ M.options = {
     ["txt"] = "Explain this block of text:",
     ["lua"] = "What does this code do?",
     ["zsh"] = "Answer this question:",
-  }
+  },
 }
 
 ---@param options table Module config table. See |M.options|.
