@@ -5,6 +5,11 @@ local D = require "explain-it.util.debug"
 
 local M = {}
 
+---@class AIResponse
+---@field question string
+---@field input string
+---@field response string|table
+
 ---@alias completion_command string
 local completion_command = [[
   curl https://api.openai.com/v1/completions \
@@ -42,8 +47,8 @@ local COMMANDS = {
 --- Formats a response string to extract the chat-gpt response (or error) from the API response. Includes logic to be API agnostic for either the completion or the chat API
 ---@param response_json table
 ---@param split boolean
----@return string|table
-M.format_response = function(response_json, split)
+---@return string
+M.parse_response = function(response_json, split)
   if not response_json or response_json == "" or response_json.error then
     if response_json.error ~= nil then
       return response_json.error.message
@@ -62,7 +67,7 @@ M.format_response = function(response_json, split)
     return string_util.format_string_with_line_breaks(text)
   end
 
-  return response_json
+  return vim.inspect(response_json)
 end
 
 --- Uses vim api to get filetype of current buffer
@@ -112,7 +117,7 @@ end
 ---@param escaped_input any
 ---@param optional_question any
 ---@param prompt_type any
----@return string
+---@return AIResponse
 M.call_gpt = function(escaped_input, optional_question, prompt_type)
   D.log(
     "chat-gpt.call_chat_gpt",
@@ -122,24 +127,30 @@ M.call_gpt = function(escaped_input, optional_question, prompt_type)
   local question = M.get_question(optional_question)
   local formatted_prompt = M.get_formatted_command(escaped_input, question, prompt_type)
   D.log("chat-gpt.call_chat_gpt", "prompt: %s", formatted_prompt)
-  local json = system.make_system_call_with_retry(formatted_prompt)
-  M.write_prompt_and_response_to_file(question, M.format_response(json, false))
-  return string_util.truncate_string(question, _G.ExplainIt.config.max_notification_width)
-    .. "\n\n"
-    .. M.format_response(json, _G.ExplainIt.config.split_responses)
+  local response = system.make_system_call_with_retry(formatted_prompt)
+  local ai_response = {
+    question = question,
+    input = escaped_input,
+    response = M.parse_response(response, false),
+  }
+  D.log("chat-gpt.call_chat_gpt", "ai_response: %s", vim.inspect(ai_response))
+  M.write_ai_response_to_file(ai_response)
+  return ai_response
 end
 
 --- Writes the prompt and response to a file so that Chat-GPT responses can be persisted
----@param prompt string
----@param response any
+---@param ai_response AIResponse
 ---@return string
-M.write_prompt_and_response_to_file = function(prompt, response)
+M.write_ai_response_to_file = function(ai_response)
   local temp_file = system.make_temp_file() or "/tmp/explain_it_output.txt"
   local fh = io.open(string.gsub(temp_file, "\n", ""), "w+")
   if fh ~= nil then
-    fh:write(string.format("%s\n\n", prompt))
+    fh:write(string.format("%s\n\n", ai_response.question))
     fh:write "\n\n"
-    fh:write(response)
+    fh:write(string.format("%s\n\n", ai_response.input))
+    fh:write "\n\n"
+    fh:write(string.format("%s\n\n", ai_response.response))
+    fh:write "\n\n"
     fh:close()
   end
   print("Response written to: " .. temp_file)

@@ -49,7 +49,7 @@ describe("chat-gpt", function()
         },
       },
     }
-    local formatted_response = chat_gpt.format_response(response_json, true)
+    local formatted_response = chat_gpt.parse_response(response_json, true)
     assert.are.equal(formatted_response, "This is a response")
   end)
 
@@ -153,7 +153,7 @@ describe("chat-gpt", function()
   it("should write prompt and response to file correctly", function()
     local prompt = "What does this code do?"
     local response = "This is a response"
-    local temp_file = chat_gpt.write_prompt_and_response_to_file(prompt, response)
+    local temp_file = chat_gpt.write_ai_response_to_file(prompt, response)
     local fh, err = io.open(temp_file, "r")
     if err or not fh then
       error "failed to get fh"
