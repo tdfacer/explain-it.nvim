@@ -4,6 +4,9 @@ local notify = require "notify"
 describe("notify", function()
   before_each(function()
     stub(notify, "notify")
+    require("explain-it").setup {
+      token_limit = 2000,
+    }
   end)
 
   it("should notify response", function()

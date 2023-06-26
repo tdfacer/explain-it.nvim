@@ -103,7 +103,7 @@ Class~
 Fields~
 {question} `(string)`
 {input} `(string)`
-{response} `(string|table)`
+{response} `(string)`
 
 ------------------------------------------------------------------------------
                                                             *completion_command*

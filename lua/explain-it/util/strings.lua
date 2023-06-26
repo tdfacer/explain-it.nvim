@@ -7,20 +7,27 @@ function M.format_string_with_line_breaks(str)
   local formattedStr = ""
   local lineLength = 0
   local words = {}
-  for word in str:gmatch "%S+" do
-    table.insert(words, word)
-  end
-  for _, word in ipairs(words) do
-    if lineLength + #word > _G.ExplainIt.config.max_notification_width then
-      formattedStr = formattedStr .. "\n" .. word
-      lineLength = #word
+  for line in str:gmatch("[^\r\n]+") do -- split string into lines
+    if #line <= _G.ExplainIt.config.max_notification_width then
+      formattedStr = formattedStr .. line .. "\n" -- preserve newline
+      lineLength = 0
     else
-      formattedStr = formattedStr .. " " .. word
-      lineLength = lineLength + #word + 1
+      for word in line:gmatch("%S+") do -- split line into words
+        if lineLength + #word > _G.ExplainIt.config.max_notification_width then
+          formattedStr = formattedStr .. "\n" .. word
+          lineLength = #word
+        else
+          formattedStr = formattedStr .. " " .. word
+          lineLength = lineLength + #word + 1
+        end
+      end
+      formattedStr = formattedStr .. "\n" -- preserve newline
+      lineLength = 0
     end
   end
-  local stripped, _ = string.gsub(formattedStr, "^%s", "")
-  return stripped
+  local stripped, _ = string.gsub(formattedStr, "^%s+", "") -- remove leading whitespace
+  local no_trailing_newline, _ = stripped:gsub("\n$", "") -- remove trailing newline
+  return no_trailing_newline
 end
 
 --- Takes a string as input and returns a truncated version of the string if it is longer than 77 characters. The truncated version includes an ellipsis ("...") at the end. If the string is 77 characters or shorter, the function simply returns the original string. The code also includes comments that describe the function's input and output parameters. Finally, the code returns the module "M".
