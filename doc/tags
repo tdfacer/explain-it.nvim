@@ -15,6 +15,7 @@ M.get_visual_selection()	explain-it.txt	/*M.get_visual_selection()*
 M.make_system_call()	explain-it.txt	/*M.make_system_call()*
 M.make_system_call_with_retry()	explain-it.txt	/*M.make_system_call_with_retry()*
 M.make_temp_file()	explain-it.txt	/*M.make_temp_file()*
+M.notify_response()	explain-it.txt	/*M.notify_response()*
 M.options	explain-it.txt	/*M.options*
 M.parse_response()	explain-it.txt	/*M.parse_response()*
 M.setup()	explain-it.txt	/*M.setup()*

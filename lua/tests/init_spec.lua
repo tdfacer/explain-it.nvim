@@ -6,6 +6,7 @@ local buff = require "explain-it.util.buffer"
 local escape = require "explain-it.util.escape"
 local chat_gpt = require "explain-it.services.chat-gpt"
 local notify = require "notify"
+local response_handler = require "explain-it.handlers.response"
 
 describe("ExplainIt", function()
   before_each(function()
@@ -13,6 +14,7 @@ describe("ExplainIt", function()
     stub(buff, "get_buffer_lines")
     stub(escape, "get_escaped_string")
     stub(ExplainIt, "call_chat_gpt")
+    stub(response_handler, "notify_response")
     stub(vim.ui, "input")
   end)
   after_each(function()
@@ -117,21 +119,13 @@ describe("call_chat_gpt", function()
   end)
 
   it("should call notify with the response from chat_gpt.call_gpt", function()
-    chat_gpt.call_gpt.returns {
+    local ai_response = {
       question = "some question",
       input = "some input",
       response = "some response",
     }
+    chat_gpt.call_gpt.returns(ai_response)
     ExplainIt.call_chat_gpt { api_type = "completion", text = "text" }
-    local expected = [[  Question:
-  some question
-
-  Input:
-  some input
-
-  Response:
-  some response
-  ]]
-    assert.stub(notify.notify).was_called_with(expected, nil, nil)
+    assert.stub(response_handler.notify_response).was_called_with(ai_response)
   end)
 end)
