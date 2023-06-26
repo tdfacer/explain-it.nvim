@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/tdfacer/explain-it.nvim/compare/v1.0.2...v1.0.3) (2023-06-26)
+
+
+### Bug Fixes
+
+* Prevent test conflicts with installed plugin ([#8](https://github.com/tdfacer/explain-it.nvim/issues/8)) ([1e683cc](https://github.com/tdfacer/explain-it.nvim/commit/1e683cc360245f13844ef33aba76806dee2b888d))
+
 ## [1.0.2](https://github.com/tdfacer/explain-it.nvim/compare/v1.0.1...v1.0.2) (2023-06-08)
 
 
