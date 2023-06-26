@@ -87,6 +87,17 @@ Creates a temporary file on the operating system
 
 ==============================================================================
 ------------------------------------------------------------------------------
+                                                           *M.notify_response()*
+                       `M.notify_response`({ai_response})
+response using notify
+Parameters~
+{ai_response} AIResponse
+Return~
+`(nil)`
+
+
+==============================================================================
+------------------------------------------------------------------------------
 Class~
 {AIResponse}
 Fields~

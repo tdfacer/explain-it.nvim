@@ -1,8 +1,8 @@
 local buff = require "explain-it.util.buffer"
+local response_handler = require "explain-it.handlers.response"
 local escape = require "explain-it.util.escape"
 local chat_gpt = require "explain-it.services.chat-gpt"
 local D = require "explain-it.util.debug"
-local notify = require "notify"
 local ExplainIt = {}
 
 --- Sets up plugin with user-provided options
@@ -48,29 +48,15 @@ end
 ---@param opts any
 function ExplainIt.call_chat_gpt(opts)
   local custom_prompt = opts and opts.custom_prompt or nil
-  local response = {}
+  local ai_response = {}
   if opts.api_type == "completion" then
     D.log("ExplainIt.call_chat_gpt", "using completion")
-    response = chat_gpt.call_gpt(opts.text, custom_prompt, "command")
+    ai_response = chat_gpt.call_gpt(opts.text, custom_prompt, "command")
   else
     D.log("ExplainIt.call_chat_gpt", "using chat")
-    response = chat_gpt.call_gpt(opts.text, custom_prompt, "chat_command")
+    ai_response = chat_gpt.call_gpt(opts.text, custom_prompt, "chat_command")
   end
-  local notification_template = [[
-  Question:
-  ##QUESTION##
-
-  Input:
-  ##INPUT##
-
-  Response:
-  ##RESPONSE##
-  ]]
-  local replaced_question = notification_template:gsub("##QUESTION##", response.question)
-  local replaced_input = replaced_question:gsub("##INPUT##", response.input)
-  local replaced_response = replaced_input:gsub("##RESPONSE##", response.response)
-
-  notify(replaced_response)
+  response_handler.notify_response(ai_response)
 end
 
 _G.ExplainIt = ExplainIt
