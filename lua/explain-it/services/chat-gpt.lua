@@ -8,7 +8,7 @@ local M = {}
 ---@class AIResponse
 ---@field question string
 ---@field input string
----@field response string|table
+---@field response string
 
 ---@alias completion_command string
 local completion_command = [[
