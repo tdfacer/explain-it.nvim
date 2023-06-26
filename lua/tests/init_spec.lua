@@ -1,3 +1,4 @@
+local mock = require "luassert.mock"
 local stub = require "luassert.stub"
 
 local ExplainIt = require "explain-it"
@@ -82,16 +83,31 @@ describe("call_chat_gpt", function()
   end)
 
   it("should call chat_gpt.call_gpt with completion api if api_type is completion", function()
+    chat_gpt.call_gpt.returns {
+      question = "some question",
+      input = "some input",
+      response = "some response",
+    }
     ExplainIt.call_chat_gpt { api_type = "completion", text = "text" }
     assert.stub(chat_gpt.call_gpt).was_called_with("text", nil, "command")
   end)
 
   it("should call chat_gpt.call_gpt with chat api if api_type is not completion", function()
+    chat_gpt.call_gpt.returns {
+      question = "some question",
+      input = "some input",
+      response = "some response",
+    }
     ExplainIt.call_chat_gpt { api_type = "chat", text = "text" }
     assert.stub(chat_gpt.call_gpt).was_called_with("text", nil, "chat_command")
   end)
 
   it("should call chat_gpt.call_gpt with custom prompt if custom_prompt is provided", function()
+    chat_gpt.call_gpt.returns {
+      question = "some question",
+      input = "some input",
+      response = "some response",
+    }
     ExplainIt.call_chat_gpt {
       api_type = "completion",
       text = "text",
@@ -101,8 +117,21 @@ describe("call_chat_gpt", function()
   end)
 
   it("should call notify with the response from chat_gpt.call_gpt", function()
-    chat_gpt.call_gpt.returns "response"
+    chat_gpt.call_gpt.returns {
+      question = "some question",
+      input = "some input",
+      response = "some response",
+    }
     ExplainIt.call_chat_gpt { api_type = "completion", text = "text" }
-    assert.stub(notify.notify).was_called_with("response", nil, nil)
+    local expected = [[  Question:
+  some question
+
+  Input:
+  some input
+
+  Response:
+  some response
+  ]]
+    assert.stub(notify.notify).was_called_with(expected, nil, nil)
   end)
 end)

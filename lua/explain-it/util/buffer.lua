@@ -17,4 +17,15 @@ M.get_buffer_lines = function()
   return content
 end
 
+---writes content to buffer
+---@param bufnr number
+---@param content string
+M.append_buffer_lines = function(bufnr, content)
+  local lines = {}
+  for line in content:gmatch "[^\n]+" do
+    table.insert(lines, line)
+  end
+  vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, lines)
+end
+
 return M

@@ -3,13 +3,20 @@ local M = {}
 --- Plugin default config values:
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 M.options = {
+  append_current_buffer = false,
   -- Prints useful logs about what event are triggered, and reasons actions are executed.
-  debug = true,
-  max_notification_width = 20,
+  debug = false,
+  max_notification_width = 200,
   max_retries = 3,
-  output_directory = "/tmp/chat_output",
-  split_responses = false,
+  output_directory = "/tmp/explain_it_output",
+  split_responses = true,
   token_limit = 2000,
+  default_prompts = {
+    ["markdown"] = "Answer this question:",
+    ["txt"] = "Explain this block of text:",
+    ["lua"] = "What does this code do?",
+    ["zsh"] = "Answer this question:",
+  },
 }
 
 ---@param options table Module config table. See |M.options|.
@@ -22,29 +29,6 @@ function M.setup(options)
 
   local system = require "explain-it.system"
   system.make_system_call(string.format("mkdir -p %s", M.options.output_directory))
-
-  local opts = { noremap = true, silent = true }
-  vim.keymap.set("n", "<space>z", require("explain-it").explain_it, opts)
-  vim.keymap.set("v", "<space>z", require("explain-it").explain_it, opts)
-  vim.keymap.set("n", "<space>Z", function()
-    require("explain-it").explain_it { custom_prompt = true }
-  end, opts)
-  -- vim.keymap.set("v", "<space>Z", function() require"explain-it".explain_it_visual({custom_prompt = true}) end, opts)
-  vim.keymap.set("v", "<space>Z", function()
-    require("explain-it").explain_it { custom_prompt = true, is_visual = true }
-  end, opts)
-  vim.keymap.set("n", "<space>x", function()
-    require("explain-it").explain_it { custom_prompt = false, api_type = "chat" }
-  end, opts)
-  vim.keymap.set("v", "<space>x", function()
-    require("explain-it").explain_it { custom_prompt = false, api_type = "chat", is_visual = true }
-  end, opts)
-  vim.keymap.set("n", "<space>X", function()
-    require("explain-it").explain_it { custom_prompt = true, api_type = "chat" }
-  end, opts)
-  vim.keymap.set("v", "<space>X", function()
-    require("explain-it").explain_it { custom_prompt = true, api_type = "chat", is_visual = true }
-  end, opts)
 
   return M.options
 end
