@@ -84,7 +84,7 @@ M.get_question = function(question)
     local ft = M.get_filetype()
     question = _G.ExplainIt.config.default_prompts[ft]
     if not question then
-      question = "Explain this:"
+      question = "Answer this question:"
     end
   end
   return question
