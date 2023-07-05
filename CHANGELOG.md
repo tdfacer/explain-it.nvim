@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/tdfacer/explain-it.nvim/compare/v1.0.3...v1.0.4) (2023-07-05)
+
+
+### Bug Fixes
+
+* **response:** Fix response splitting in handler ([5988eb9](https://github.com/tdfacer/explain-it.nvim/commit/5988eb99c0c926132eeb3946e34d29751c93a0de))
+
 ## [1.0.3](https://github.com/tdfacer/explain-it.nvim/compare/v1.0.2...v1.0.3) (2023-06-26)
 
 
