@@ -106,7 +106,7 @@
         -- Prints useful log messages
         debug = true,
         -- Customize notification window width
-        max_notification_width = 20,
+        max_notification_width = 200,
         -- Retry API calls
         max_retries = 3,
         -- Customize response text file persistence location
@@ -115,11 +115,17 @@
         split_responses = false,
         -- Set token limit to prioritize keeping costs low, or increasing quality/length of responses
         token_limit = 2000,
+        -- Per-filetype default prompt questions
+        default_prompts = {
+          ["markdown"] = "Answer this question:",
+          ["txt"] = "Explain this block of text:",
+          ["lua"] = "What does this code do?",
+          ["zsh"] = "Answer this question:",
+        },
       }
     end
   })
 ```
-
 </td>
 </tr>
 <tr>
@@ -147,6 +153,13 @@
           split_responses = false,
           -- Set token limit to prioritize keeping costs low, or increasing quality/length of responses
           token_limit = 2000,
+          -- Per-filetype default prompt questions
+          default_prompts = {
+            ["markdown"] = "Answer this question:",
+            ["txt"] = "Explain this block of text:",
+            ["lua"] = "What does this code do?",
+            ["zsh"] = "Answer this question:",
+          },
         }
       end
   },

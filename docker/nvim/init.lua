@@ -29,6 +29,13 @@ local plugins = {
         split_responses = true,
         -- Set token limit to prioritize keeping costs low, or increasing quality/length of responses
         token_limit = 2000,
+        -- Per-filetype default prompt questions
+        default_prompts = {
+          ["markdown"] = "Answer this question:",
+          ["txt"] = "Explain this block of text:",
+          ["lua"] = "What does this code do?",
+          ["zsh"] = "Answer this question:",
+        },
       }
     end,
   },
