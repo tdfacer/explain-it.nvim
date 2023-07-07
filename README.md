@@ -9,7 +9,7 @@
   
 ![](https://github.com/trevordf/gifs/blob/main/explain-it.png)
 
-## See it in Action
+## See it in Action (click to expand)
 
 #### Explain Code
 
