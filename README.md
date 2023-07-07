@@ -14,7 +14,7 @@
 #### Explain Code
 
 <details>
-<summary>Visually select a block of text in your buffer, and have ChatGPT tell you what it does! Optionally customize the prompt included in your request.</summary>
+<summary>Visually select a block of text in your buffer, and have OpenAI tell you what it does! Optionally customize the prompt included in your request.</summary>
   
   ![](https://github.com/trevordf/gifs/blob/main/explain_code.gif)
   
@@ -23,7 +23,7 @@
 #### Summarize a Block of Text
 
 <details>
-<summary>Sick of reading documents? Have ChatGPT summarize what your buffer says.</summary>
+<summary>Sick of reading documents? Have OpenAI summarize what your buffer says.</summary>
   
   ![](https://github.com/trevordf/gifs/blob/main/summarize.gif)
   
@@ -40,7 +40,7 @@
 
 #### Write Unit Tests
 <details>
-<summary>Jump start your unit tests by letting ChatGPT take the first crack at writing them for you.</summary>
+<summary>Jump start your unit tests by letting OpenAI take the first crack at writing them for you.</summary>
   
   ![](https://github.com/trevordf/gifs/blob/main/speed_up.gif)
   
@@ -48,7 +48,7 @@
 
 #### Write Code
 <details>
-<summary>Stub out what you need done, and let ChatGPT fill in the blanks.</summary>
+<summary>Stub out what you need done, and let OpenAI fill in the blanks.</summary>
   
   ![](https://github.com/trevordf/gifs/blob/main/write_fibonacci.gif)
   
@@ -65,9 +65,9 @@
 
 ## ⚡️ Features
 
-> Neovim integration with the ChatGPT API
+> Neovim integration with the OpenAI API
 
-- Send your entire buffer to ChatGPT APIs! This will allow you to do things like:
+- Send your entire buffer to OpenAI APIs! This will allow you to do things like:
   - Explain what code does
   - Generate code snippets
   - Write unit tests
