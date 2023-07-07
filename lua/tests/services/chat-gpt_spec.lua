@@ -33,6 +33,7 @@ describe("chat-gpt", function()
     require("explain-it").setup {
       token_limit = 2000,
       output_directory = ".",
+      openai_chat_model = "FAKE_MODEL",
       default_prompts = {
         ["markdown"] = "Answer this question in the markdown file:",
         ["custom"] = "Answer this custom question:",
@@ -114,7 +115,7 @@ describe("chat-gpt", function()
     local formatted_prompt = chat_gpt.get_formatted_command(escaped_prompt, question, command_type)
     assert.are.equal(
       formatted_prompt,
-      '  curl https://api.openai.com/v1/chat/completions \\\n    2>/dev/null \\\n    -H "Content-Type: application/json" \\\n    -H "Authorization: Bearer FAKE KEY" \\\n    -d \'{\n      "model": "gpt-3.5-turbo-0301",\n      "messages": [{"role": "user", "content": "What does this code do?\\nThis is an escaped prompt"}],\n      "max_tokens": 2000,\n      "temperature": 0.2\n    }\'\n'
+      '  curl https://api.openai.com/v1/chat/completions \\\n    2>/dev/null \\\n    -H "Content-Type: application/json" \\\n    -H "Authorization: Bearer FAKE KEY" \\\n    -d \'{\n      "model": "FAKE_MODEL",\n      "messages": [{"role": "user", "content": "What does this code do?\\nThis is an escaped prompt"}],\n      "max_tokens": 2000,\n      "temperature": 0.2\n    }\'\n'
     )
     mock.revert(mock_os)
   end)

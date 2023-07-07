@@ -17,7 +17,7 @@ local completion_command = [[
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer ##API_KEY##" \
     -d '{
-      "model": "text-davinci-003",
+      "model": "##MODEL##",
       "prompt": "##OPTIONAL_QUESTION##\n##ESCAPED_INPUT##",
       "max_tokens": 2000,
       "temperature": 0
@@ -31,7 +31,7 @@ local chat_command = [[
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer ##API_KEY##" \
     -d '{
-      "model": "gpt-3.5-turbo-0301",
+      "model": "##MODEL##",
       "messages": [{"role": "user", "content": "##OPTIONAL_QUESTION##\n##ESCAPED_INPUT##"}],
       "max_tokens": 2000,
       "temperature": 0.2
@@ -96,7 +96,12 @@ end
 ---@param command_type commands
 ---@return string
 M.get_formatted_command = function(escaped_input, question, command_type)
-  local command_str = command_type == "chat_command" and COMMANDS.chat or COMMANDS.completion
+  local command_str = ""
+  if command_type == "chat_command" then
+    command_str = COMMANDS.chat:gsub("##MODEL##", _G.ExplainIt.config.openai_chat_model)
+  else
+    command_str = COMMANDS.completion:gsub("##MODEL##", _G.ExplainIt.config.openai_completion_model)
+  end
   local api_key = os.getenv "CHAT_GPT_API_KEY"
   if not api_key or api_key == "" then
     D.log("chat-gpt.get_formatted_command", "Failed to get CHAT_GPT_API_KEY")

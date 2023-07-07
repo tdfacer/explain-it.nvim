@@ -35,6 +35,8 @@ Plugin default config values:
     debug = false,
     max_notification_width = 200,
     max_retries = 3,
+    openai_chat_model = "gpt-3.5-turbo-16k-0613",
+    openai_completion_model = "text-davinci-003",
     output_directory = "/tmp/explain_it_output",
     split_responses = true,
     token_limit = 2000,
