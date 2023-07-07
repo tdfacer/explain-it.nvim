@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/tdfacer/explain-it.nvim/compare/v1.0.4...v1.1.0) (2023-07-07)
+
+
+### Features
+
+* **openai:** Add model config options ([68cf45e](https://github.com/tdfacer/explain-it.nvim/commit/68cf45e08e955e8d6833f6e2ce89f39a1ced0b9e))
+
 ## [1.0.4](https://github.com/tdfacer/explain-it.nvim/compare/v1.0.3...v1.0.4) (2023-07-05)
 
 
