@@ -28,11 +28,11 @@ M.notify_response = function(ai_response)
     or ai_response.input
   local response = should_split and strings.format_string_with_line_breaks(ai_response.response)
     or ai_response.response
+  local with_percent = response:gsub("%%", "%%%%")
 
   local replaced_question = notification_template:gsub("##QUESTION##", question)
   local replaced_input = replaced_question:gsub("##INPUT##", input)
-  local replaced_response = replaced_input:gsub("##RESPONSE##", response)
-
+  local replaced_response = replaced_input:gsub("##RESPONSE##", with_percent)
   notify(replaced_response)
 end
 
