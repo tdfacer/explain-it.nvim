@@ -57,6 +57,7 @@ function ExplainIt.call_chat_gpt(opts)
     ai_response = chat_gpt.call_gpt(opts.text, custom_prompt, "chat_command")
   end
   response_handler.notify_response(ai_response)
+  response_handler.append_buffer_response(ai_response)
 end
 
 _G.ExplainIt = ExplainIt

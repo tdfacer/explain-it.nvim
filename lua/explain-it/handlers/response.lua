@@ -1,5 +1,6 @@
 local strings = require "explain-it.util.strings"
 local notify = require "notify"
+local buffer = require "explain-it.util.buffer"
 
 local M = {}
 
@@ -34,6 +35,14 @@ M.notify_response = function(ai_response)
   local replaced_input = replaced_question:gsub("##INPUT##", input)
   local replaced_response = replaced_input:gsub("##RESPONSE##", with_percent)
   notify(replaced_response)
+end
+
+---Notifies response using notify
+---@param ai_response AIResponse
+---@return nil
+M.append_buffer_response = function(ai_response)
+  local bufnr = vim.api.nvim_get_current_buf()
+  buffer.append_buffer_lines(bufnr, ai_response.response)
 end
 
 return M

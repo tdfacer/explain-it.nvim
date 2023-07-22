@@ -28,4 +28,9 @@ M.append_buffer_lines = function(bufnr, content)
   vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, lines)
 end
 
+-- M.get_current_buffer_number = function()
+--   local bufnr = vim.api.nvim_get_current_buf()
+--   M.append_buffer_lines(bufnr, "pizza")
+-- end
+
 return M
