@@ -23,6 +23,7 @@ function ExplainIt.explain_it(opts)
   opts.api_type = opts.api_type or "completion"
   opts.is_visual = opts.is_visual or false
   opts.custom_prompt = opts.custom_prompt or false
+  opts.output_to_buffer = opts and opts.output_to_buffer or false
 
   local text = ""
   if opts.is_visual then
@@ -48,6 +49,7 @@ end
 ---@param opts any
 function ExplainIt.call_chat_gpt(opts)
   local custom_prompt = opts and opts.custom_prompt or nil
+  D.log("ExplainIt.call_chat_gpt", "opts: %s", vim.inspect(opts))
   local ai_response = {}
   if opts.api_type == "completion" then
     D.log("ExplainIt.call_chat_gpt", "using completion")
@@ -57,7 +59,9 @@ function ExplainIt.call_chat_gpt(opts)
     ai_response = chat_gpt.call_gpt(opts.text, custom_prompt, "chat_command")
   end
   response_handler.notify_response(ai_response)
-  response_handler.append_buffer_response(ai_response)
+  if opts.output_to_buffer then
+    response_handler.append_buffer_response(ai_response)
+  end
 end
 
 _G.ExplainIt = ExplainIt
