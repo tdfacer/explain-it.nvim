@@ -25,8 +25,22 @@ local completion_command = [[
 ]]
 
 ---@alias chat_command string
+---https://api.x.ai/v1
+-- local chat_command = [[
+--   curl https://api.openai.com/v1/chat/completions \
+--     2>/dev/null \
+--     -H "Content-Type: application/json" \
+--     -H "Authorization: Bearer ##API_KEY##" \
+--     -d '{
+--       "model": "##MODEL##",
+--       "messages": [{"role": "user", "content": "##OPTIONAL_QUESTION##\n##ESCAPED_INPUT##"}],
+--       "max_tokens": 2000,
+--       "temperature": 0.2
+--     }'
+-- ]]
+
 local chat_command = [[
-  curl https://api.openai.com/v1/chat/completions \
+  curl https://api.x.ai/v1/chat/completions \
     2>/dev/null \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer ##API_KEY##" \
@@ -97,6 +111,8 @@ end
 ---@return string
 M.get_formatted_command = function(escaped_input, question, command_type)
   local command_str = ""
+
+  D.log("chat-gpt.get_formatted_command", "Using model: " .. _G.ExplainIt.config.openai_chat_model)
   if command_type == "chat_command" then
     command_str = COMMANDS.chat:gsub("##MODEL##", _G.ExplainIt.config.openai_chat_model)
   else
