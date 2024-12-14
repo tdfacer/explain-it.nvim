@@ -100,7 +100,7 @@ describe("chat-gpt", function()
     local command_type = "completion_command"
     assert.has_error(function()
       chat_gpt.get_formatted_command(escaped_prompt, question, command_type)
-    end, "Failed to get API key. Is CHAT_GPT_API_KEY env var set?")
+    end, "Failed to get API key. Is CHAT_GPT_API_KEY or GROK_API_KEY env var set?")
     mock.revert(mock_os)
   end)
 

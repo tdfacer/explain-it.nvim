@@ -12,7 +12,7 @@ local M = {}
 
 ---@alias completion_command string
 local completion_command = [[
-  curl ##MODEL_BASE_API##/v1/completions \
+  curl ##MODEL_BASE_API##/completions \
     2>/dev/null \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer ##API_KEY##" \
