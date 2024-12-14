@@ -16,6 +16,7 @@ end
 --- visually selected text, then call call_chat_gpt with it.
 ---@param opts any
 function ExplainIt.explain_it(opts)
+  D.log("init", "opts: %s", vim.inspect(opts))
   if not opts then
     opts = {}
   end
