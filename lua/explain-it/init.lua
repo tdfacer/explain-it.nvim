@@ -54,10 +54,10 @@ function ExplainIt.call_chat_gpt(opts)
   local ai_response = {}
   if opts.api_type == "completion" then
     D.log("ExplainIt.call_chat_gpt", "using completion")
-    ai_response = chat_gpt.call_gpt(opts.text, custom_prompt, "command")
+    ai_response = chat_gpt.call_gpt(opts.text, custom_prompt, "command", opts)
   else
     D.log("ExplainIt.call_chat_gpt", "using chat")
-    ai_response = chat_gpt.call_gpt(opts.text, custom_prompt, "chat_command")
+    ai_response = chat_gpt.call_gpt(opts.text, custom_prompt, "chat_command", opts)
   end
   response_handler.notify_response(ai_response)
   if opts.output_to_buffer then
