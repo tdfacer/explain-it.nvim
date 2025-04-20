@@ -26,17 +26,17 @@ local completion_command = [[
 
 ---@alias chat_command string
 local chat_command = [[
-  curl ##MODEL_BASE_API##/chat/completions \
+  curl ##MODEL_BASE_API##chat/completions \
     2>/dev/null \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer ##API_KEY##" \
     -d '{
       "model": "##MODEL##",
-      "messages": [{"role": "user", "content": "##OPTIONAL_QUESTION##\n##ESCAPED_INPUT##"}],
-      "max_tokens": 2000,
-      "temperature": 0.2
+      "messages": [{"role": "user", "content": "##OPTIONAL_QUESTION##\n##ESCAPED_INPUT##"}]
     }'
 ]]
+      -- "temperature": 0.2
+      -- "max_tokens": 2000,
 
 ---@enum commands
 local COMMANDS = {
@@ -125,6 +125,8 @@ M.get_formatted_command = function(escaped_input, question, command_type, opts)
   end
   local populated_token = string.gsub(command_str, "##API_KEY##", api_key)
   local populated_question = string.gsub(populated_token, "##OPTIONAL_QUESTION##", question)
+  D.log("chat-gpt.get_formatted_command", "populated_question: " .. populated_question)
+  D.log("chat-gpt.get_formatted_command", "escaped_input: " .. escaped_input)
   local populated_prompt = string.gsub(populated_question, "##ESCAPED_INPUT##", escaped_input)
   local with_tokens = string.gsub(populated_prompt, "##TOKEN_LIMIT##", get_opt("token_limit", "1024"))
   D.log("chat-gpt.get_formatted_command", "prompt: " .. with_tokens)
