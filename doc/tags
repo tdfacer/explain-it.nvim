@@ -3,6 +3,7 @@ ExplainIt.call_chat_gpt()	explain-it.txt	/*ExplainIt.call_chat_gpt()*
 ExplainIt.explain_it()	explain-it.txt	/*ExplainIt.explain_it()*
 ExplainIt.setup()	explain-it.txt	/*ExplainIt.setup()*
 M.append_buffer_lines()	explain-it.txt	/*M.append_buffer_lines()*
+M.append_buffer_response()	explain-it.txt	/*M.append_buffer_response()*
 M.call_gpt()	explain-it.txt	/*M.call_gpt()*
 M.escape()	explain-it.txt	/*M.escape()*
 M.format_string_with_line_breaks()	explain-it.txt	/*M.format_string_with_line_breaks()*
