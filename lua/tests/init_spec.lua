@@ -40,6 +40,7 @@ describe("ExplainIt", function()
         custom_prompt = false,
         text = "escaped string",
         is_visual = false,
+        output_to_buffer = false,
       }
     end)
 
@@ -52,6 +53,7 @@ describe("ExplainIt", function()
         custom_prompt = false,
         text = "escaped string",
         is_visual = true,
+        output_to_buffer = false,
       }
     end)
 
