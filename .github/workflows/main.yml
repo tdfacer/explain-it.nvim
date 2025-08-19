@@ -55,7 +55,7 @@ jobs:
         include:
           - id: Neovim Nightly
             os: ubuntu-latest
-            url: https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz
+            url: https://github.com/neovim/neovim/releases/download/nightly/nvim-linux-x86_64.tar.gz
             manager: sudo apt-get
             packages: -y ripgrep
           - id: Neovim 0.9
