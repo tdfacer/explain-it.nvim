@@ -3,7 +3,7 @@
                                                              *ExplainIt.setup()*
                            `ExplainIt.setup`({opts})
 Sets up plugin with user-provided options
-Parameters~
+Parameters ~
 {opts} `(any)`
 
 ------------------------------------------------------------------------------
@@ -12,14 +12,14 @@ Parameters~
 Core function for preparing requests to external services. Based on input,
 will either pull the contents of the full buffer into a variable or just the
 visually selected text, then call call_chat_gpt with it.
-Parameters~
+Parameters ~
 {opts} `(any)`
 
 ------------------------------------------------------------------------------
                                                      *ExplainIt.call_chat_gpt()*
                        `ExplainIt.call_chat_gpt`({opts})
 Takes prepared input text and calls either the chat or the completion api on the chat-gpt module
-Parameters~
+Parameters ~
 {opts} `(any)`
 
 
@@ -28,14 +28,14 @@ Parameters~
                                                                      *M.options*
                                   `M.options`
 Plugin default config values:
->
+>lua
   M.options = {
     append_current_buffer = false,
     -- Prints useful logs about what event are triggered, and reasons actions are executed.
     debug = false,
     max_notification_width = 200,
     max_retries = 3,
-    openai_chat_model = "gpt-3.5-turbo-16k-0613",
+    openai_chat_model = "gpt-5",
     openai_completion_model = "text-davinci-003",
     output_directory = "/tmp/explain_it_output",
     split_responses = true,
@@ -49,14 +49,13 @@ Plugin default config values:
   }
 
 <
-
 ------------------------------------------------------------------------------
                                                                      *M.setup()*
                               `M.setup`({options})
-Parameters~
+Parameters ~
 {options} `(table)` Module config table. See |M.options|.
 
-Usage~
+Usage ~
 `require("explain-it").setup()` (add `{}` with your |M.options| table)
 
 
@@ -66,18 +65,18 @@ Usage~
                         `M.make_system_call`({command})
 Makes a call into the underlying operating system
 and reads the response
-Parameters~
+Parameters ~
 {command} `(string)` the command to run
-Return~
+Return ~
 `(string|nil)` result result of the command
 
 ------------------------------------------------------------------------------
                                                *M.make_system_call_with_retry()*
                    `M.make_system_call_with_retry`({command})
 Wrapper around make_system_call that will retry failed requests
-Parameters~
+Parameters ~
 {command} `(string)`
-Return~
+Return ~
 `(table|lsp.ResponseError)`
 
 ------------------------------------------------------------------------------
@@ -92,17 +91,26 @@ Creates a temporary file on the operating system
                                                            *M.notify_response()*
                        `M.notify_response`({ai_response})
 response using notify
-Parameters~
-{ai_response} AIResponse
-Return~
+Parameters ~
+{ai_response} `(AIResponse)`
+Return ~
+`(nil)`
+
+------------------------------------------------------------------------------
+                                                    *M.append_buffer_response()*
+                   `M.append_buffer_response`({ai_response})
+response using notify
+Parameters ~
+{ai_response} `(AIResponse)`
+Return ~
 `(nil)`
 
 
 ==============================================================================
 ------------------------------------------------------------------------------
-Class~
+Class ~
 {AIResponse}
-Fields~
+Fields ~
 {question} `(string)`
 {input} `(string)`
 {response} `(string)`
@@ -124,57 +132,57 @@ commands
                                                             *M.parse_response()*
                   `M.parse_response`({response_json}, {split})
 Formats a response string to extract the chat-gpt response (or error) from the API response. Includes logic to be API agnostic for either the completion or the chat API
-Parameters~
+Parameters ~
 {response_json} `(table)`
 {split} `(boolean)`
-Return~
+Return ~
 `(string)`
 
 ------------------------------------------------------------------------------
                                                               *M.get_filetype()*
                                `M.get_filetype`()
 Uses vim api to get filetype of current buffer
-Return~
+Return ~
 `(string)`
 
 ------------------------------------------------------------------------------
                                                               *M.get_question()*
                           `M.get_question`({question})
 Returns default question based on filetype of buffer
-Parameters~
+Parameters ~
 {question} `(string|nil)`
-Return~
+Return ~
 `(string)`
 
 ------------------------------------------------------------------------------
                                                      *M.get_formatted_command()*
      `M.get_formatted_command`({escaped_input}, {question}, {command_type})
 Uses a local command and replaces placeholder text with the ChatGPT API Key from an env var and placeholder text with the prompt
-Parameters~
+Parameters ~
 {escaped_input} `(string)`
 {question} `(string)`
-{command_type} commands
-Return~
+{command_type} `(commands)`
+Return ~
 `(string)`
 
 ------------------------------------------------------------------------------
                                                                   *M.call_gpt()*
        `M.call_gpt`({escaped_input}, {optional_question}, {prompt_type})
 Formats input in order to make an API call to ChatGPT, makes the API call, writes the prompt and response to a file, then returns the response
-Parameters~
+Parameters ~
 {escaped_input} `(any)`
 {optional_question} `(any)`
 {prompt_type} `(any)`
-Return~
-AIResponse
+Return ~
+`(AIResponse)`
 
 ------------------------------------------------------------------------------
                                                  *M.write_ai_response_to_file()*
                   `M.write_ai_response_to_file`({ai_response})
 Writes the prompt and response to a file so that Chat-GPT responses can be persisted
-Parameters~
-{ai_response} AIResponse
-Return~
+Parameters ~
+{ai_response} `(AIResponse)`
+Return ~
 `(string)`
 
 
@@ -185,21 +193,21 @@ Return~
 Yank current visual selection into the 'v' register
 Note that this makes no effort to preserve this register
 Credit: tjdevries
-Return~
+Return ~
 `(string)`
 
 ------------------------------------------------------------------------------
                                                           *M.get_buffer_lines()*
                              `M.get_buffer_lines`()
 Get all lines in current buffer
-Return~
+Return ~
 `(string)`
 
 ------------------------------------------------------------------------------
                                                        *M.append_buffer_lines()*
                   `M.append_buffer_lines`({bufnr}, {content})
 content to buffer
-Parameters~
+Parameters ~
 {bufnr} `(number)`
 {content} `(string)`
 
@@ -209,18 +217,18 @@ Parameters~
                                                                     *M.escape()*
                               `M.escape`({input})
 Escapes characters so that they can be included in a JSON body
-Parameters~
+Parameters ~
 {input} `(any)`
-Return~
+Return ~
 `(string)`
 
 ------------------------------------------------------------------------------
                                                         *M.get_escaped_string()*
                         `M.get_escaped_string`({input})
 Escapes a string value or all string values on an input table
-Parameters~
-{input} `(string|{)` [string]: string }
-Return~
+Parameters ~
+{input} `(string|{ [string]: string })`
+Return ~
 `(string)`
 
 
@@ -229,18 +237,18 @@ Return~
                                             *M.format_string_with_line_breaks()*
                    `M.format_string_with_line_breaks`({str})
 Takes a string of variable length as input, then formats the string by splitting it into words and inserting line breaks to ensure that each line is no longer than the max_width as defined in global settings
-Parameters~
+Parameters ~
 {str} `(string)`
-Return~
+Return ~
 `(string)`
 
 ------------------------------------------------------------------------------
                                                            *M.truncate_string()*
                        `M.truncate_string`({str}, {len})
 Takes a string as input and returns a truncated version of the string if it is longer than 77 characters. The truncated version includes an ellipsis ("...") at the end. If the string is 77 characters or shorter, the function simply returns the original string. The code also includes comments that describe the function's input and output parameters. Finally, the code returns the module "M".
-Parameters~
+Parameters ~
 {str} `(string)`
-Return~
+Return ~
 `(string)`
 
 

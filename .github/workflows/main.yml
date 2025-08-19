@@ -7,7 +7,7 @@ on:
     types: [opened, synchronize]
 
 concurrency:
-  group: github.head_ref
+  group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -54,25 +54,25 @@ jobs:
       matrix:
         include:
           - id: Neovim Nightly
-            os: ubuntu-20.04
-            url: https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz
+            os: ubuntu-latest
+            url: https://github.com/neovim/neovim/releases/download/nightly/nvim-linux-x86_64.tar.gz
             manager: sudo apt-get
             packages: -y ripgrep
-          - id: Neovim 0.9
-            os: ubuntu-20.04
-            url: https://github.com/neovim/neovim/releases/download/v0.9.0/nvim-linux64.tar.gz
+          - id: Neovim 0.10.4
+            os: ubuntu-latest
+            url: https://github.com/neovim/neovim/releases/download/v0.10.4/nvim-linux-x86_64.tar.gz
             manager: sudo apt-get
             packages: -y ripgrep
-          - id: Neovim 0.8
-            os: ubuntu-20.04
-            url: https://github.com/neovim/neovim/releases/download/v0.8.0/nvim-linux64.tar.gz
+          - id: Neovim Stable
+            os: ubuntu-latest
+            url: https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.tar.gz
             manager: sudo apt-get
             packages: -y ripgrep
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - run: date +%F > todays-date
       - name: Restore from todays cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: _neovim
           key: ${{ runner.os }}-${{ matrix.url }}-${{ hashFiles('todays-date') }}

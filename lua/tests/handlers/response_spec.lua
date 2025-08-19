@@ -1,12 +1,24 @@
 local stub = require "luassert.stub"
+
+-- Clear loaded modules to ensure we can mock properly
+package.loaded["notify"] = nil
+package.loaded["explain-it.handlers.response"] = nil
+
+-- Create stub for notify
+local notify_stub = stub()
+package.loaded["notify"] = notify_stub
+
 local response_handler = require "explain-it.handlers.response"
-local notify = require "notify"
+
 describe("notify", function()
   before_each(function()
-    stub(notify, "notify")
     require("explain-it").setup {
       token_limit = 2000,
     }
+  end)
+
+  after_each(function()
+    notify_stub:clear()
   end)
 
   it("should notify response", function()
@@ -25,11 +37,11 @@ describe("notify", function()
   Nice to meet you John
   ]]
     response_handler.notify_response(ai_response)
-    assert.stub(notify.notify).was_called_with(expected_notification, nil, nil)
+    assert.stub(notify_stub).was_called_with(expected_notification)
   end)
 
   it("should not notify response if ai_response is nil", function()
     response_handler.notify_response(nil)
-    assert.stub(notify.notify).was_not_called()
+    assert.stub(notify_stub).was_not_called()
   end)
 end)
