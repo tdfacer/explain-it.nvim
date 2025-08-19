@@ -16,7 +16,7 @@ describe("notify", function()
       token_limit = 2000,
     }
   end)
-  
+
   after_each(function()
     notify_stub:clear()
   end)
