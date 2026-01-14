@@ -690,8 +690,18 @@ function M.execute_context(instance)
     local escaped = require("explain-it.util.escape").get_escaped_string(full_prompt)
     local joined = string.gsub(escaped, "\n", "\\n")
 
-    -- Call OpenAI
-    local ai_response = chat_gpt.call_gpt(joined, nil, "chat_command")
+    -- Call OpenAI with optional model override
+    local ai_response
+    if provider_config.model then
+      -- Temporarily override the model for this call
+      local original_model = _G.ExplainIt.config.openai_chat_model
+      _G.ExplainIt.config.openai_chat_model = provider_config.model
+      ai_response = chat_gpt.call_gpt(joined, nil, "chat_command")
+      _G.ExplainIt.config.openai_chat_model = original_model
+    else
+      -- Use default model
+      ai_response = chat_gpt.call_gpt(joined, nil, "chat_command")
+    end
 
     if ai_response and ai_response.response then
       -- Add to conversation

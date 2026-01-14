@@ -33,7 +33,7 @@ local chat_command = [[
     -d '{
       "model": "##MODEL##",
       "messages": [{"role": "user", "content": "##OPTIONAL_QUESTION##\n##ESCAPED_INPUT##"}],
-      "max_tokens": 2000,
+      "max_completion_tokens": 20000,
       "temperature": 0.2
     }'
 ]]

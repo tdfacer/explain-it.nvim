@@ -29,6 +29,8 @@ M.options = {
     providers = {
       openai = {
         -- Use existing OpenAI config
+        -- Optionally override the model for Context Builder
+        -- model = "gpt-4-turbo-preview",
       },
       aichat = {
         command = "aichat",
