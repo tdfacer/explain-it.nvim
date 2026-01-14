@@ -196,15 +196,20 @@ local function ContextBuilder(ctx)
           -- Move cursor to the instruction line
           vim.api.nvim_win_set_cursor(0, {instruction_line, 0})
 
-          local line_content = lines[instruction_line]
-          -- Check if it's the placeholder or actual instruction
-          if line_content == "Type your instruction here..." then
-            -- Clear the line and enter insert mode
-            vim.cmd('normal! cc')
-          else
-            -- Enter insert mode at the beginning
-            vim.cmd('normal! 0i')
-          end
+          -- Schedule the insert mode command to avoid textlock
+          vim.schedule(function()
+            local line_content = vim.api.nvim_get_current_line()
+            -- Check if it's the placeholder
+            if line_content == "Type your instruction here..." then
+              -- Clear the line first
+              vim.api.nvim_set_current_line("")
+              -- Then enter insert mode
+              vim.cmd('startinsert')
+            else
+              -- Just enter insert mode at the beginning
+              vim.cmd('startinsert')
+            end
+          end)
         else
           vim.notify("Could not find instruction input", vim.log.levels.WARN)
         end
