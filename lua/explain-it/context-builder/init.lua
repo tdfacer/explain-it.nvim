@@ -161,7 +161,13 @@ local function ContextBuilder(ctx)
       ['<CR>'] = function()
         if state.instruction ~= "" and not state.loading then
           -- Execute the provider
-          M.execute_context(instance)
+          local buf = vim.api.nvim_get_current_buf()
+          local instance = M._instances[buf]
+          if instance then
+            M.execute_context(instance)
+          else
+            vim.notify("Could not find Context Builder instance", vim.log.levels.ERROR)
+          end
         elseif state.instruction == "" then
           vim.notify("Please enter an instruction first", vim.log.levels.WARN)
         end
