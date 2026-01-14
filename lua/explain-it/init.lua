@@ -112,6 +112,12 @@ function ExplainIt.add_selection_to_context()
   ContextBuilder.add_snippet(filepath, start_pos[2], end_pos[2], selection)
 end
 
+--- Export the active Context Builder's context to clipboard
+function ExplainIt.export_context_to_clipboard()
+  local ContextBuilder = require("explain-it.context-builder")
+  return ContextBuilder.export_to_clipboard()
+end
+
 _G.ExplainIt = ExplainIt
 
 return _G.ExplainIt

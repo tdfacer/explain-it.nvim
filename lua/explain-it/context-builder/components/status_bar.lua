@@ -55,7 +55,7 @@ function M.StatusBar(ctx)
 
   -- Keybind hints
   table.insert(status_items, ' | ')
-  table.insert(status_items, h.Comment({}, '[? for help]'))
+  table.insert(status_items, h.Comment({}, '[f: files, e: export, ?: help]'))
 
   -- Return the status items directly as content
   -- Don't use virt_lines since it doesn't support morph.nvim tags

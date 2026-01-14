@@ -166,11 +166,17 @@ local function ContextBuilder(ctx)
         vim.cmd('bdelete!')
         return ''
       end,
+      ['e'] = function()
+        -- Export context to clipboard
+        M.export_to_clipboard()
+        return ''
+      end,
       ['?'] = function()
         -- Show help
         vim.notify([[Context Builder Help:
 f - Add files to context
 s - Add snippets to context
+e - Export context to clipboard
 <CR> - Send instruction to AI
 q - Close Context Builder
 ? - Show this help]], vim.log.levels.INFO)
@@ -359,6 +365,95 @@ function M.add_snippet(filepath, start_line, end_line, content)
   ctx:update(state)
 
   vim.notify(string.format("Added snippet from %s:%d-%d", filepath, start_line, end_line), vim.log.levels.INFO)
+  return true
+end
+
+--- Export the current context to clipboard
+---@return boolean success
+function M.export_to_clipboard()
+  local instance = M.get_active_instance()
+  if not instance then
+    vim.notify("No active Context Builder found. Open one with <leader>bn", vim.log.levels.WARN)
+    return false
+  end
+
+  local ctx = instance.context
+  local state = ctx.state
+
+  -- Check if there's any context
+  if #state.files == 0 and #state.snippets == 0 then
+    vim.notify("No context to export", vim.log.levels.WARN)
+    return false
+  end
+
+  -- Build the export content
+  local lines = {}
+
+  -- Add header
+  table.insert(lines, "# AI Context")
+  table.insert(lines, "")
+  table.insert(lines, "Generated on: " .. os.date("%Y-%m-%d %H:%M:%S"))
+  table.insert(lines, "")
+
+  -- Add files section
+  if #state.files > 0 then
+    table.insert(lines, "## Files")
+    table.insert(lines, "")
+
+    for i, file in ipairs(state.files) do
+      table.insert(lines, "### " .. file.path)
+      table.insert(lines, "")
+      table.insert(lines, "```" .. vim.fn.fnamemodify(file.path, ":e"))  -- file extension for syntax highlighting
+      table.insert(lines, file.content)
+      if not file.content:match("\n$") then
+        table.insert(lines, "")  -- Ensure newline before closing ```
+      end
+      table.insert(lines, "```")
+      table.insert(lines, "")
+    end
+  end
+
+  -- Add snippets section
+  if #state.snippets > 0 then
+    table.insert(lines, "## Snippets")
+    table.insert(lines, "")
+
+    for i, snippet in ipairs(state.snippets) do
+      table.insert(lines, "### From " .. snippet.path .. ":" .. snippet.start_line .. "-" .. snippet.end_line)
+      table.insert(lines, "")
+      table.insert(lines, "```" .. vim.fn.fnamemodify(snippet.path, ":e"))
+      table.insert(lines, snippet.content)
+      if not snippet.content:match("\n$") then
+        table.insert(lines, "")
+      end
+      table.insert(lines, "```")
+      table.insert(lines, "")
+    end
+  end
+
+  -- Add instruction if present
+  if state.instruction and state.instruction ~= "" then
+    table.insert(lines, "## Instruction")
+    table.insert(lines, "")
+    table.insert(lines, state.instruction)
+    table.insert(lines, "")
+  end
+
+  -- Join all lines
+  local content = table.concat(lines, "\n")
+
+  -- Copy to clipboard
+  vim.fn.setreg("+", content)
+  vim.fn.setreg("*", content)  -- Also copy to selection register
+
+  -- Calculate size info
+  local file_count = #state.files
+  local snippet_count = #state.snippets
+  local size_kb = math.floor(#content / 1024)
+
+  vim.notify(string.format("Exported context to clipboard: %d files, %d snippets (%d KB)",
+    file_count, snippet_count, size_kb), vim.log.levels.INFO)
+
   return true
 end
 
