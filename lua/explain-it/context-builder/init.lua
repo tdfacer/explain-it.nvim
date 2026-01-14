@@ -83,15 +83,33 @@ local function ContextBuilder(ctx)
   if state.loading then
     table.insert(result, h.DiagnosticWarn({}, "⟳ Processing... Please wait..."))
   else
-    table.insert(result, h('text', {
-      id = 'instruction-input',
-      on_change = function(e)
-        state.instruction = e.text
-        ctx:update(state)
-        e.bubble_up = false
-      end,
-      hl = state.active_section == 'instruction' and 'Visual' or nil,
-    }, state.instruction == "" and "Type your instruction here..." or state.instruction))
+    -- Show placeholder when empty, actual text otherwise
+    if state.instruction == "" then
+      table.insert(result, h('text', {
+        id = 'instruction-input',
+        on_change = function(e)
+          -- When user starts typing, replace the placeholder
+          if e.text ~= "Type your instruction here..." then
+            state.instruction = e.text
+          else
+            state.instruction = ""
+          end
+          ctx:update(state)
+          e.bubble_up = false
+        end,
+        hl = state.active_section == 'instruction' and 'Visual' or 'Comment',
+      }, "Type your instruction here..."))
+    else
+      table.insert(result, h('text', {
+        id = 'instruction-input',
+        on_change = function(e)
+          state.instruction = e.text
+          ctx:update(state)
+          e.bubble_up = false
+        end,
+        hl = state.active_section == 'instruction' and 'Visual' or nil,
+      }, state.instruction))
+    end
   end
 
   table.insert(result, '\n\n')
@@ -158,6 +176,40 @@ local function ContextBuilder(ctx)
         vim.notify("Snippet selector not implemented yet", vim.log.levels.INFO)
         return ''
       end,
+      ['i'] = function()
+        -- Focus instruction input by searching for the instruction section
+        local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+        local instruction_line = nil
+
+        -- Find the line after "## Instruction" header
+        for i, line in ipairs(lines) do
+          if line:match("^## Instruction") then
+            -- The instruction text should be 2 lines after the header (skip blank line)
+            if i + 2 <= #lines then
+              instruction_line = i + 2
+              break
+            end
+          end
+        end
+
+        if instruction_line then
+          -- Move cursor to the instruction line
+          vim.api.nvim_win_set_cursor(0, {instruction_line, 0})
+
+          local line_content = lines[instruction_line]
+          -- Check if it's the placeholder or actual instruction
+          if line_content == "Type your instruction here..." then
+            -- Clear the line and enter insert mode
+            vim.cmd('normal! cc')
+          else
+            -- Enter insert mode at the beginning
+            vim.cmd('normal! 0i')
+          end
+        else
+          vim.notify("Could not find instruction input", vim.log.levels.WARN)
+        end
+        return ''
+      end,
       ['<CR>'] = function()
         if state.instruction ~= "" and not state.loading then
           -- Execute the provider
@@ -188,6 +240,7 @@ local function ContextBuilder(ctx)
         vim.notify([[Context Builder Help:
 f - Add files to context
 s - Add snippets to context
+i - Focus instruction input
 e - Export context to clipboard
 <CR> - Send to AI provider (when instruction is entered)
 q - Close Context Builder
@@ -472,6 +525,26 @@ function M.export_to_clipboard()
     table.insert(lines, "")
   end
 
+  -- Add conversation history if present
+  if #state.conversation > 0 then
+    table.insert(lines, "## Conversation History")
+    table.insert(lines, "")
+
+    for _, msg in ipairs(state.conversation) do
+      local timestamp = os.date("%H:%M:%S", msg.timestamp)
+      if msg.role == "user" then
+        table.insert(lines, "### You [" .. timestamp .. "]")
+        table.insert(lines, "")
+        table.insert(lines, msg.content)
+      else
+        table.insert(lines, "### AI [" .. timestamp .. "]")
+        table.insert(lines, "")
+        table.insert(lines, msg.content)
+      end
+      table.insert(lines, "")
+    end
+  end
+
   -- Join all lines
   local content = table.concat(lines, "\n")
 
@@ -488,6 +561,37 @@ function M.export_to_clipboard()
     file_count, snippet_count, size_kb), vim.log.levels.INFO)
 
   return true
+end
+
+--- Build full prompt including context, conversation history, and current instruction
+---@param context string The context string (files and snippets)
+---@param state table The current state with conversation and instruction
+---@return string
+function M.build_full_prompt(context, state)
+  local lines = {}
+
+  -- Add context first
+  table.insert(lines, context)
+
+  -- Add conversation history if exists
+  if #state.conversation > 0 then
+    table.insert(lines, "\n## Previous Conversation\n")
+
+    for _, msg in ipairs(state.conversation) do
+      if msg.role == "user" then
+        table.insert(lines, "User: " .. msg.content)
+      else
+        table.insert(lines, "\nAssistant: " .. msg.content)
+      end
+      table.insert(lines, "")
+    end
+  end
+
+  -- Add current instruction
+  table.insert(lines, "\n## Current Question\n")
+  table.insert(lines, state.instruction)
+
+  return table.concat(lines, "\n")
 end
 
 --- Build context string from files and snippets
@@ -568,6 +672,9 @@ function M.execute_context(instance)
     return
   end
 
+  -- Build full prompt with conversation history
+  local full_prompt = M.build_full_prompt(context, state)
+
   -- For now, use the existing explain-it mechanism if provider is "openai"
   if provider_name == "openai" then
     -- Use existing OpenAI integration
@@ -575,8 +682,7 @@ function M.execute_context(instance)
     local response_handler = require("explain-it.handlers.response")
 
     -- Format for OpenAI
-    local full_text = context .. "\n\n" .. state.instruction
-    local escaped = require("explain-it.util.escape").get_escaped_string(full_text)
+    local escaped = require("explain-it.util.escape").get_escaped_string(full_prompt)
     local joined = string.gsub(escaped, "\n", "\\n")
 
     -- Call OpenAI
@@ -622,8 +728,8 @@ function M.execute_context(instance)
       return
     end
 
-    -- Execute provider
-    provider:execute(context, state.instruction, function(success, response)
+    -- Execute provider with full prompt (passing empty string for instruction since it's included in prompt)
+    provider:execute(full_prompt, "", function(success, response)
       vim.schedule(function()
         if success then
           -- Add to conversation

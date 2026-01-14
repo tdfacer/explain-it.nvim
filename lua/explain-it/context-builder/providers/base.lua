@@ -21,7 +21,11 @@ function M.new(config)
     streaming = config.streaming or false,
     format_input = config.format_input or function(context, instruction)
       -- Default: concatenate context and instruction
-      return context .. "\n\n" .. instruction
+      if instruction and instruction ~= "" then
+        return context .. "\n\n" .. instruction
+      else
+        return context
+      end
     end,
     parse_response = config.parse_response or function(output)
       -- Default: return output as-is

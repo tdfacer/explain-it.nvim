@@ -118,6 +118,24 @@ function ExplainIt.export_context_to_clipboard()
   return ContextBuilder.export_to_clipboard()
 end
 
+--- Focus the instruction input in the active Context Builder
+function ExplainIt.focus_instruction_input()
+  local ContextBuilder = require("explain-it.context-builder")
+  local instance = ContextBuilder.get_active_instance()
+
+  if not instance then
+    vim.notify("No active Context Builder found. Open one with :ExplainItContext", vim.log.levels.WARN)
+    return
+  end
+
+  -- Get the renderer and simulate pressing 'i'
+  local renderer = instance.renderer
+  if renderer then
+    -- Simulate the 'i' keypress to focus instruction
+    vim.api.nvim_feedkeys('i', 'n', false)
+  end
+end
+
 _G.ExplainIt = ExplainIt
 
 return _G.ExplainIt
