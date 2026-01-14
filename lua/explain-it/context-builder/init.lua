@@ -82,6 +82,8 @@ local function ContextBuilder(ctx)
 
   if state.loading then
     table.insert(result, h.DiagnosticWarn({}, "⟳ Processing... Please wait..."))
+    table.insert(result, '\n')
+    table.insert(result, h.Comment({}, "The AI is thinking. This may take a few seconds..."))
   else
     -- Show placeholder when empty, actual text otherwise
     if state.instruction == "" then
@@ -690,45 +692,64 @@ function M.execute_context(instance)
     local escaped = require("explain-it.util.escape").get_escaped_string(full_prompt)
     local joined = string.gsub(escaped, "\n", "\\n")
 
-    -- Call OpenAI with optional model override
-    local ai_response
+    -- Handle model override if configured
+    local original_model
     if provider_config.model then
-      -- Temporarily override the model for this call
-      local original_model = _G.ExplainIt.config.openai_chat_model
+      original_model = _G.ExplainIt.config.openai_chat_model
       _G.ExplainIt.config.openai_chat_model = provider_config.model
-      ai_response = chat_gpt.call_gpt(joined, nil, "chat_command")
-      _G.ExplainIt.config.openai_chat_model = original_model
-    else
-      -- Use default model
-      ai_response = chat_gpt.call_gpt(joined, nil, "chat_command")
     end
 
-    if ai_response and ai_response.response then
-      -- Add to conversation
-      table.insert(state.conversation, {
-        role = "user",
-        content = state.instruction,
-        timestamp = os.time(),
-      })
+    -- Call OpenAI asynchronously
+    chat_gpt.call_gpt_async(
+      joined,
+      nil,
+      "chat_command",
+      function(ai_response)
+        -- Success callback
+        -- Restore original model if we overrode it
+        if original_model then
+          _G.ExplainIt.config.openai_chat_model = original_model
+        end
 
-      table.insert(state.conversation, {
-        role = "assistant",
-        content = ai_response.response,
-        timestamp = os.time(),
-      })
+        if ai_response and ai_response.response then
+          -- Add to conversation
+          table.insert(state.conversation, {
+            role = "user",
+            content = state.instruction,
+            timestamp = os.time(),
+          })
 
-      -- Clear instruction
-      state.instruction = ""
-      state.loading = false
-      ctx:update(state)
+          table.insert(state.conversation, {
+            role = "assistant",
+            content = ai_response.response,
+            timestamp = os.time(),
+          })
 
-      vim.notify("Response received from " .. provider_name, vim.log.levels.INFO)
-    else
-      -- Error occurred
-      vim.notify("No response received from " .. provider_name, vim.log.levels.ERROR)
-      state.loading = false
-      ctx:update(state)
-    end
+          -- Clear instruction
+          state.instruction = ""
+          state.loading = false
+          ctx:update(state)
+
+          vim.notify("Response received from " .. provider_name, vim.log.levels.INFO)
+        else
+          -- Error occurred
+          vim.notify("No response received from " .. provider_name, vim.log.levels.ERROR)
+          state.loading = false
+          ctx:update(state)
+        end
+      end,
+      function(error)
+        -- Error callback
+        -- Restore original model if we overrode it
+        if original_model then
+          _G.ExplainIt.config.openai_chat_model = original_model
+        end
+
+        vim.notify("OpenAI API error: " .. error, vim.log.levels.ERROR)
+        state.loading = false
+        ctx:update(state)
+      end
+    )
   else
     -- Use CLI provider
     local cli = require("explain-it.context-builder.providers.cli")

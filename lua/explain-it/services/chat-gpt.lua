@@ -162,4 +162,51 @@ M.write_ai_response_to_file = function(ai_response)
   return temp_file
 end
 
+--- Async version of call_gpt using callbacks
+---@param escaped_input any
+---@param optional_question any
+---@param prompt_type any
+---@param on_success fun(response: AIResponse) callback with result
+---@param on_error fun(error: string) callback with error
+M.call_gpt_async = function(escaped_input, optional_question, prompt_type, on_success, on_error)
+  D.log(
+    "chat-gpt.call_gpt_async",
+    "Making async API call to /v1/chat/completions API with prompt: %s",
+    escaped_input
+  )
+
+  local question = M.get_question(optional_question)
+  local formatted_prompt = M.get_formatted_command(escaped_input, question, prompt_type)
+  D.log("chat-gpt.call_gpt_async", "prompt: %s", formatted_prompt)
+
+  -- Make async call
+  system.make_async_system_call(
+    formatted_prompt,
+    function(response)
+      -- Success callback
+      vim.schedule(function()
+        local success, result = pcall(vim.fn.json_decode, response)
+        if success and result then
+          local ai_response = {
+            question = question,
+            input = escaped_input,
+            response = M.parse_response(result, false),
+          }
+          D.log("chat-gpt.call_gpt_async", "ai_response: %s", vim.inspect(ai_response))
+          M.write_ai_response_to_file(ai_response)
+          on_success(ai_response)
+        else
+          on_error("Failed to parse API response: " .. (response or "empty response"))
+        end
+      end)
+    end,
+    function(error)
+      -- Error callback
+      vim.schedule(function()
+        on_error("API call failed: " .. error)
+      end)
+    end
+  )
+end
+
 return M
