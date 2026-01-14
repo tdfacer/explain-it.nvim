@@ -80,15 +80,19 @@ local function ContextBuilder(ctx)
   table.insert(result, h.Title({}, '## Instruction'))
   table.insert(result, '\n')
 
-  table.insert(result, h('text', {
-    id = 'instruction-input',
-    on_change = function(e)
-      state.instruction = e.text
-      ctx:update(state)
-      e.bubble_up = false
-    end,
-    hl = state.active_section == 'instruction' and 'Visual' or nil,
-  }, state.instruction == "" and "Type your instruction here..." or state.instruction))
+  if state.loading then
+    table.insert(result, h.DiagnosticWarn({}, "⟳ Processing... Please wait..."))
+  else
+    table.insert(result, h('text', {
+      id = 'instruction-input',
+      on_change = function(e)
+        state.instruction = e.text
+        ctx:update(state)
+        e.bubble_up = false
+      end,
+      hl = state.active_section == 'instruction' and 'Visual' or nil,
+    }, state.instruction == "" and "Type your instruction here..." or state.instruction))
+  end
 
   table.insert(result, '\n\n')
 
@@ -156,8 +160,10 @@ local function ContextBuilder(ctx)
       end,
       ['<CR>'] = function()
         if state.instruction ~= "" and not state.loading then
-          -- TODO: Send to provider
-          vim.notify("Sending: " .. state.instruction, vim.log.levels.INFO)
+          -- Execute the provider
+          M.execute_context(instance)
+        elseif state.instruction == "" then
+          vim.notify("Please enter an instruction first", vim.log.levels.WARN)
         end
         return ''
       end,
@@ -177,9 +183,11 @@ local function ContextBuilder(ctx)
 f - Add files to context
 s - Add snippets to context
 e - Export context to clipboard
-<CR> - Send instruction to AI
+<CR> - Send to AI provider (when instruction is entered)
 q - Close Context Builder
-? - Show this help]], vim.log.levels.INFO)
+? - Show this help
+
+Current provider: ]] .. (state.provider or _G.ExplainIt.config.context_builder.default_provider), vim.log.levels.INFO)
         return ''
       end,
     }
@@ -190,15 +198,34 @@ end
 ConversationThread = function(ctx)
   local result = {}
 
-  for _, msg in ipairs(ctx.props.messages) do
+  for i, msg in ipairs(ctx.props.messages) do
+    -- Add timestamp
+    local timestamp = os.date("%H:%M:%S", msg.timestamp)
+
     if msg.role == "user" then
-      table.insert(result, h.Title({}, '### You'))
+      table.insert(result, h.Title({}, '### You '))
+      table.insert(result, h.Comment({}, '[' .. timestamp .. ']'))
     else
-      table.insert(result, h.Title({}, '### AI'))
+      table.insert(result, h.Title({}, '### AI '))
+      table.insert(result, h.Comment({}, '[' .. timestamp .. ']'))
     end
     table.insert(result, '\n')
-    table.insert(result, msg.content)
-    table.insert(result, '\n\n')
+
+    -- Format the content with proper line breaks
+    local lines = vim.split(msg.content, '\n', { plain = true })
+    for j, line in ipairs(lines) do
+      table.insert(result, line)
+      if j < #lines then
+        table.insert(result, '\n')
+      end
+    end
+
+    -- Add separator between messages
+    if i < #ctx.props.messages then
+      table.insert(result, '\n\n---\n\n')
+    else
+      table.insert(result, '\n\n')
+    end
   end
 
   return result
@@ -455,6 +482,171 @@ function M.export_to_clipboard()
     file_count, snippet_count, size_kb), vim.log.levels.INFO)
 
   return true
+end
+
+--- Build context string from files and snippets
+---@param state table The component state
+---@return string context_string
+function M.build_context_string(state)
+  local lines = {}
+
+  -- Add files
+  if #state.files > 0 then
+    table.insert(lines, "Files:")
+    table.insert(lines, "")
+
+    for _, file in ipairs(state.files) do
+      table.insert(lines, "File: " .. file.path)
+      table.insert(lines, "```" .. vim.fn.fnamemodify(file.path, ":e"))
+      table.insert(lines, file.content)
+      if not file.content:match("\n$") then
+        table.insert(lines, "")
+      end
+      table.insert(lines, "```")
+      table.insert(lines, "")
+    end
+  end
+
+  -- Add snippets
+  if #state.snippets > 0 then
+    table.insert(lines, "Code Snippets:")
+    table.insert(lines, "")
+
+    for _, snippet in ipairs(state.snippets) do
+      table.insert(lines, "From " .. snippet.path .. ":" .. snippet.start_line .. "-" .. snippet.end_line)
+      table.insert(lines, "```" .. vim.fn.fnamemodify(snippet.path, ":e"))
+      table.insert(lines, snippet.content)
+      if not snippet.content:match("\n$") then
+        table.insert(lines, "")
+      end
+      table.insert(lines, "```")
+      table.insert(lines, "")
+    end
+  end
+
+  return table.concat(lines, "\n")
+end
+
+--- Execute the context with the selected provider
+---@param instance table The Context Builder instance
+function M.execute_context(instance)
+  local ctx = instance.context
+  local state = ctx.state
+
+  -- Check prerequisites
+  if not state.instruction or state.instruction == "" then
+    vim.notify("No instruction provided", vim.log.levels.WARN)
+    return
+  end
+
+  if #state.files == 0 and #state.snippets == 0 then
+    vim.notify("No context added. Add files or snippets first.", vim.log.levels.WARN)
+    return
+  end
+
+  -- Set loading state
+  state.loading = true
+  ctx:update(state)
+
+  -- Build context string
+  local context = M.build_context_string(state)
+
+  -- Get provider
+  local provider_name = state.provider or _G.ExplainIt.config.context_builder.default_provider
+  local provider_config = _G.ExplainIt.config.context_builder.providers[provider_name]
+
+  if not provider_config then
+    vim.notify("Provider not configured: " .. provider_name, vim.log.levels.ERROR)
+    state.loading = false
+    ctx:update(state)
+    return
+  end
+
+  -- For now, use the existing explain-it mechanism if provider is "openai"
+  if provider_name == "openai" then
+    -- Use existing OpenAI integration
+    local chat_gpt = require("explain-it.services.chat-gpt")
+    local response_handler = require("explain-it.handlers.response")
+
+    -- Format for OpenAI
+    local full_text = context .. "\n\n" .. state.instruction
+    local escaped = require("explain-it.util.escape").get_escaped_string(full_text)
+    local joined = string.gsub(escaped, "\n", "\\n")
+
+    -- Call OpenAI
+    local ai_response = chat_gpt.call_gpt(joined, nil, "chat_command")
+
+    if ai_response and ai_response.response then
+      -- Add to conversation
+      table.insert(state.conversation, {
+        role = "user",
+        content = state.instruction,
+        timestamp = os.time(),
+      })
+
+      table.insert(state.conversation, {
+        role = "assistant",
+        content = ai_response.response,
+        timestamp = os.time(),
+      })
+
+      -- Clear instruction
+      state.instruction = ""
+      state.loading = false
+      ctx:update(state)
+
+      vim.notify("Response received from " .. provider_name, vim.log.levels.INFO)
+    else
+      -- Error occurred
+      vim.notify("No response received from " .. provider_name, vim.log.levels.ERROR)
+      state.loading = false
+      ctx:update(state)
+    end
+  else
+    -- Use CLI provider
+    local cli = require("explain-it.context-builder.providers.cli")
+    local provider = cli.create_from_config(provider_name, provider_config)
+
+    -- Validate provider
+    local valid, err = provider:validate()
+    if not valid then
+      vim.notify("Provider validation failed: " .. (err or "unknown error"), vim.log.levels.ERROR)
+      state.loading = false
+      ctx:update(state)
+      return
+    end
+
+    -- Execute provider
+    provider:execute(context, state.instruction, function(success, response)
+      vim.schedule(function()
+        if success then
+          -- Add to conversation
+          table.insert(state.conversation, {
+            role = "user",
+            content = state.instruction,
+            timestamp = os.time(),
+          })
+
+          table.insert(state.conversation, {
+            role = "assistant",
+            content = response,
+            timestamp = os.time(),
+          })
+
+          -- Clear instruction
+          state.instruction = ""
+          state.loading = false
+          ctx:update(state)
+
+          vim.notify("Response received from " .. provider_name, vim.log.levels.INFO)
+        else
+          vim.notify("Provider error: " .. response, vim.log.levels.ERROR)
+          state.loading = false
+          ctx:update(state)
+        end
+      end)
+    end)
+  end
 end
 
 return M
