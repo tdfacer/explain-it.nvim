@@ -29,6 +29,25 @@ function D.log(scope, str, ...)
   )
 end
 
+function D.log_always(scope, str, ...)
+  local info = debug.getinfo(2, "Sl")
+  local line = ""
+
+  if info then
+    line = "L" .. info.currentline
+  end
+
+  print(
+    string.format(
+      "[explain-it:%s %s in %s] > %s",
+      os.date "%H:%M:%S",
+      line,
+      scope,
+      string.format(str, ...)
+    )
+  )
+end
+
 --- prints the table if debug is true.
 ---@param table table: the table to print.
 ---@param indent number?: the default indent value, starts at 0.
