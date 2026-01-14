@@ -64,6 +64,18 @@ function ExplainIt.call_chat_gpt(opts)
   end
 end
 
+--- Opens the interactive AI Context Builder interface
+---@param opts table|nil Optional configuration for the context builder
+function ExplainIt.open_context_builder(opts)
+  if not _G.ExplainIt.config.context_builder.enabled then
+    vim.notify("Context Builder is not enabled. Set context_builder.enabled = true in setup()", vim.log.levels.WARN)
+    return
+  end
+
+  local ContextBuilder = require("explain-it.context-builder")
+  ContextBuilder.open(opts)
+end
+
 _G.ExplainIt = ExplainIt
 
 return _G.ExplainIt

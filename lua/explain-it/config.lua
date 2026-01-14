@@ -19,6 +19,47 @@ M.options = {
     ["lua"] = "What does this code do?",
     ["zsh"] = "Answer this question:",
   },
+
+  -- Context Builder options
+  context_builder = {
+    enabled = false,  -- Opt-in feature
+
+    -- Provider configuration
+    default_provider = "openai",
+    providers = {
+      openai = {
+        -- Use existing OpenAI config
+      },
+      aichat = {
+        command = "aichat",
+        args = { "--no-stream" },
+      },
+      llm = {
+        command = "llm",
+        args = { "prompt", "-s", "system.txt" },
+      },
+    },
+
+    -- Session management
+    session_dir = vim.fn.stdpath("data") .. "/explain-it/sessions",
+    auto_save = true,
+    auto_save_interval = 300,  -- seconds
+
+    -- UI preferences
+    window_config = {
+      split = "vertical",
+      width = 0.4,  -- 40% of screen
+    },
+
+    -- Templates
+    templates_dir = vim.fn.stdpath("config") .. "/explain-it/templates",
+    builtin_templates = {
+      "code_review",
+      "documentation",
+      "refactoring",
+      "debugging",
+    },
+  },
 }
 
 ---@param options table Module config table. See |M.options|.
@@ -31,6 +72,12 @@ function M.setup(options)
 
   local system = require "explain-it.system"
   system.make_system_call(string.format("mkdir -p %s", M.options.output_directory))
+
+  -- Create Context Builder directories if enabled
+  if M.options.context_builder.enabled then
+    system.make_system_call(string.format("mkdir -p %s", M.options.context_builder.session_dir))
+    system.make_system_call(string.format("mkdir -p %s", M.options.context_builder.templates_dir))
+  end
 
   return M.options
 end
