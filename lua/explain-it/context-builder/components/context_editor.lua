@@ -47,10 +47,11 @@ local function ContextItem(ctx)
     if type == 'file' then
       -- Show first few lines of file
       local preview = item.content:match("^(.-\n.-\n.-\n.-\n.-\n)") or item.content
-      if #preview < #item.content then
-        preview = preview .. h.Comment({}, '... (truncated)')
-      end
+      local is_truncated = #preview < #item.content
       table.insert(content, h('text', { hl = 'Normal' }, preview))
+      if is_truncated then
+        table.insert(content, h.Comment({}, '... (truncated)'))
+      end
     else
       -- Show snippet content
       table.insert(content, h('text', { hl = 'Normal' }, item.content))

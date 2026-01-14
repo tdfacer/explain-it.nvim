@@ -76,6 +76,42 @@ function ExplainIt.open_context_builder(opts)
   ContextBuilder.open(opts)
 end
 
+--- Add current file to the active Context Builder
+function ExplainIt.add_current_file_to_context()
+  local filepath = vim.fn.expand("%:p")
+  if filepath == "" then
+    vim.notify("No file open in current buffer", vim.log.levels.WARN)
+    return
+  end
+
+  -- Make sure we have a real file
+  if not vim.fn.filereadable(filepath) then
+    vim.notify("Current buffer is not a saved file: " .. filepath, vim.log.levels.WARN)
+    return
+  end
+
+  local ContextBuilder = require("explain-it.context-builder")
+  ContextBuilder.add_file(filepath)
+end
+
+--- Add visual selection to the active Context Builder
+function ExplainIt.add_selection_to_context()
+  local buf = require("explain-it.util.buffer")
+  local selection = buf.get_visual_selection()
+
+  if not selection or selection == "" then
+    vim.notify("No selection found", vim.log.levels.WARN)
+    return
+  end
+
+  local filepath = vim.fn.expand("%:p")
+  local start_pos = vim.fn.getpos("'<")
+  local end_pos = vim.fn.getpos("'>")
+
+  local ContextBuilder = require("explain-it.context-builder")
+  ContextBuilder.add_snippet(filepath, start_pos[2], end_pos[2], selection)
+end
+
 _G.ExplainIt = ExplainIt
 
 return _G.ExplainIt
