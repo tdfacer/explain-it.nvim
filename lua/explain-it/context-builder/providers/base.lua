@@ -91,27 +91,49 @@ function M:execute(context, instruction, callback)
   -- Execute with input from file
   local cmd_str = table.concat(full_cmd, " ") .. " < " .. temp_file
 
+  -- Buffer output and only call callback once on exit
+  local stdout_chunks = {}
+  local stderr_chunks = {}
+
   vim.fn.jobstart(cmd_str, {
-    stdout_buffered = not self.streaming,
+    stdout_buffered = true,
+    stderr_buffered = true,
     on_stdout = function(_, data, _)
-      if data and #data > 0 then
-        local output = table.concat(data, "\n")
-        local parsed = self.parse_response(output)
-        callback(true, parsed)
+      if data then
+        for _, line in ipairs(data) do
+          if line ~= "" then
+            table.insert(stdout_chunks, line)
+          end
+        end
       end
     end,
     on_stderr = function(_, data, _)
-      if data and #data > 0 then
-        local error_msg = table.concat(data, "\n")
-        callback(false, "Error: " .. error_msg)
+      if data then
+        for _, line in ipairs(data) do
+          if line ~= "" then
+            table.insert(stderr_chunks, line)
+          end
+        end
       end
     end,
     on_exit = function(_, exit_code, _)
       -- Clean up temp file
       os.remove(temp_file)
 
-      if exit_code ~= 0 then
-        callback(false, "Command exited with code: " .. exit_code)
+      local stdout_output = table.concat(stdout_chunks, "\n")
+      local stderr_output = table.concat(stderr_chunks, "\n")
+
+      -- If we have stdout, treat as success (even if there was stderr info)
+      if stdout_output ~= "" then
+        local parsed = self.parse_response(stdout_output)
+        callback(true, parsed)
+      elseif exit_code ~= 0 then
+        -- Only report error if exit code is non-zero and no stdout
+        local error_msg = stderr_output ~= "" and stderr_output or ("Command exited with code: " .. exit_code)
+        callback(false, "Error: " .. error_msg)
+      else
+        -- Exit 0 but no output
+        callback(false, "No output received from provider")
       end
     end,
   })
