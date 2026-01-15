@@ -443,8 +443,8 @@ local function ContextBuilder(ctx)
         -- Show help
         vim.notify([[Context Builder Help:
 f - Add files from current directory
-F - Add files from any directory (quick menu)
-D - Add files via directory browser (telescope)
+F - Browse files via telescope file browser
+D - Quick directory menu (common paths)
 s - Add snippets to context
 i - Focus instruction input
 e - Export context to clipboard

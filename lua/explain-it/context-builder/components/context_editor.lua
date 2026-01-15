@@ -33,7 +33,8 @@ local function ContextItem(ctx)
     }
   }, {
     state.expanded and '▼ ' or '▶ ',
-    type == 'file' and h.Directory({}, item.path) or h.String({}, item.path .. ':' .. item.start_line .. '-' .. item.end_line),
+    type == 'file' and h.Directory({}, item.path) or
+    h.String({}, item.path .. ':' .. item.start_line .. '-' .. item.end_line),
     ' ',
     h.Comment({}, '[x to remove, space to toggle]'),
   }))
