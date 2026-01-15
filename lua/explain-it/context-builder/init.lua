@@ -174,29 +174,14 @@ local function ContextBuilder(ctx)
         return ''
       end,
       ['F'] = function()
-        -- Add file from a different directory - prompt for directory first
+        -- Add file from a different directory
         vim.schedule(function()
-          vim.ui.input({
-            prompt = 'Directory to browse: ',
-            default = vim.fn.expand("~") .. '/',
-            completion = 'dir',
-          }, function(dir)
-            if not dir or dir == "" then
-              return
-            end
-
-            -- Expand and validate directory
-            dir = vim.fn.expand(dir)
-            if vim.fn.isdirectory(dir) ~= 1 then
-              vim.notify("Not a valid directory: " .. dir, vim.log.levels.ERROR)
-              return
-            end
-
-            -- Try using telescope if available
+          -- Helper to open find_files in a directory
+          local function open_find_files_in_dir(dir)
             local has_telescope, telescope = pcall(require, 'telescope.builtin')
             if has_telescope then
               telescope.find_files({
-                prompt_title = "Add File to Context (from " .. dir .. ")",
+                prompt_title = "Add File to Context (from " .. vim.fn.fnamemodify(dir, ":~") .. ")",
                 cwd = dir,
                 attach_mappings = function(prompt_bufnr, map)
                   local actions = require('telescope.actions')
@@ -225,6 +210,57 @@ local function ContextBuilder(ctx)
                 if file and file ~= "" then
                   M.add_file(file)
                 end
+              end)
+            end
+          end
+
+          -- Build list of quick directory options
+          local home = vim.fn.expand("~")
+          local dirs = {
+            { label = "~ (Home)", path = home },
+            { label = "/ (Root)", path = "/" },
+          }
+
+          -- Add some common subdirs if they exist
+          local common = { "code", "projects", "Documents", "Downloads", ".config" }
+          for _, subdir in ipairs(common) do
+            local full_path = home .. "/" .. subdir
+            if vim.fn.isdirectory(full_path) == 1 then
+              table.insert(dirs, { label = "~/" .. subdir, path = full_path })
+            end
+          end
+
+          table.insert(dirs, { label = "Other (type path)...", path = nil })
+
+          -- Show directory picker
+          local labels = {}
+          for _, d in ipairs(dirs) do
+            table.insert(labels, d.label)
+          end
+
+          vim.ui.select(labels, { prompt = "Select directory to browse:" }, function(choice, idx)
+            if not choice then return end
+
+            local selected = dirs[idx]
+            if selected.path then
+              -- Direct selection
+              open_find_files_in_dir(selected.path)
+            else
+              -- "Other" - prompt for path
+              vim.ui.input({
+                prompt = 'Directory path: ',
+                default = home .. '/',
+                completion = 'dir',
+              }, function(dir)
+                if not dir or dir == "" then return end
+
+                dir = vim.fn.expand(dir)
+                if vim.fn.isdirectory(dir) ~= 1 then
+                  vim.notify("Not a valid directory: " .. dir, vim.log.levels.ERROR)
+                  return
+                end
+
+                open_find_files_in_dir(dir)
               end)
             end
           end)
