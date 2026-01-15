@@ -61,7 +61,7 @@ local function ContextBuilder(ctx)
   table.insert(result, '\n\n')
 
   if #state.files == 0 and #state.snippets == 0 then
-    table.insert(result, h.Comment({}, 'No context added yet. Press "f" to add files or "s" to add snippets.'))
+    table.insert(result, h.Comment({}, 'No context added yet. Press "f" to add files, "F" to browse other directories, or "s" for snippets.'))
   else
     table.insert(result, h(ContextEditor, {
       files = state.files,
@@ -173,6 +173,64 @@ local function ContextBuilder(ctx)
         end)
         return ''
       end,
+      ['F'] = function()
+        -- Add file from a different directory - prompt for directory first
+        vim.schedule(function()
+          vim.ui.input({
+            prompt = 'Directory to browse: ',
+            default = vim.fn.expand("~") .. '/',
+            completion = 'dir',
+          }, function(dir)
+            if not dir or dir == "" then
+              return
+            end
+
+            -- Expand and validate directory
+            dir = vim.fn.expand(dir)
+            if vim.fn.isdirectory(dir) ~= 1 then
+              vim.notify("Not a valid directory: " .. dir, vim.log.levels.ERROR)
+              return
+            end
+
+            -- Try using telescope if available
+            local has_telescope, telescope = pcall(require, 'telescope.builtin')
+            if has_telescope then
+              telescope.find_files({
+                prompt_title = "Add File to Context (from " .. dir .. ")",
+                cwd = dir,
+                attach_mappings = function(prompt_bufnr, map)
+                  local actions = require('telescope.actions')
+                  local action_state = require('telescope.actions.state')
+
+                  actions.select_default:replace(function()
+                    actions.close(prompt_bufnr)
+                    local selection = action_state.get_selected_entry()
+                    if selection then
+                      local filepath = selection.path or selection[1]
+                      if filepath then
+                        M.add_file(filepath)
+                      end
+                    end
+                  end)
+                  return true
+                end,
+              })
+            else
+              -- Fallback to vim.ui.input
+              vim.ui.input({
+                prompt = 'File path: ',
+                default = dir .. '/',
+                completion = 'file',
+              }, function(file)
+                if file and file ~= "" then
+                  M.add_file(file)
+                end
+              end)
+            end
+          end)
+        end)
+        return ''
+      end,
       ['s'] = function()
         -- TODO: Add snippet from visual selection
         vim.notify("Snippet selector not implemented yet", vim.log.levels.INFO)
@@ -245,7 +303,8 @@ local function ContextBuilder(ctx)
       ['?'] = function()
         -- Show help
         vim.notify([[Context Builder Help:
-f - Add files to context
+f - Add files from current directory
+F - Add files from any directory
 s - Add snippets to context
 i - Focus instruction input
 e - Export context to clipboard
