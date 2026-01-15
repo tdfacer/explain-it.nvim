@@ -153,7 +153,9 @@ local function ContextBuilder(ctx)
           if has_telescope then
             telescope.find_files {
               prompt_title = "Add File to Context",
-              cwd = current_dir,
+              -- cwd = current_dir,
+              -- cwd = _G.ExplainIt.config.default_directory or current_dir,
+              cwd = _G.ExplainIt.config.start_directory or current_dir,
               attach_mappings = function(prompt_bufnr, map)
                 local actions = require("telescope.actions")
                 local action_state = require("telescope.actions.state")
@@ -230,8 +232,8 @@ local function ContextBuilder(ctx)
               cwd = "~",
               cwd_to_path = false,
               files = true,
-              auto_depth = true,
-              -- depth = false,
+              -- auto_depth = true,
+              depth = 2,
               grouped = true,
               hide_parent_dir = false,
               attach_mappings = function(prompt_bufnr, map)
@@ -426,7 +428,7 @@ local function ContextBuilder(ctx)
       end,
       ["q"] = function()
         -- Close the context builder
-        vim.cmd("bdelete!")
+        vim.cmd("q!")
         return ""
       end,
       ["e"] = function()

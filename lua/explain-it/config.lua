@@ -1,3 +1,5 @@
+local D = require("explain-it.util.debug")
+
 local M = {}
 
 --- Plugin default config values:
@@ -22,6 +24,7 @@ M.options = {
     ["lua"] = "What does this code do?",
     ["zsh"] = "Answer this question:",
   },
+  default_directory = nil,
 
   -- Context Builder options
   context_builder = {
@@ -74,6 +77,20 @@ function M.setup(options)
   options = options or {}
 
   M.options = vim.tbl_deep_extend("keep", options, M.options)
+  M.options.start_directory = vim.fn.expand("%:p:h")
+
+  -- D.log_always("Explain-It config:", "%s", vim.inspect(M.options))
+  -- if default_directory provided by user, use it; else set to standard data path
+  -- if M.options.default_directory then
+  --   M.options.output_directory = M.options.default_directory
+  -- else
+  --   local current_dir = vim.fn.expand("%:p:h")
+  --   M.options.default_directory = current_dir
+  -- end
+
+  -- if not M.options.default_directory then
+  --   M.options.default_directory = vim.fn.stdpath("data") .. "/explain-it"
+  -- end
 
   local system = require("explain-it.system")
   system.make_system_call(string.format("mkdir -p %s", M.options.output_directory))
