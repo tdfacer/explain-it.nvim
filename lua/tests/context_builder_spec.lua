@@ -1,7 +1,7 @@
-local mock = require "luassert.mock"
-local stub = require "luassert.stub"
+local mock = require("luassert.mock")
+local stub = require("luassert.stub")
 
-local ExplainIt = require "explain-it"
+local ExplainIt = require("explain-it")
 
 describe("Context Builder", function()
   before_each(function()
@@ -29,43 +29,42 @@ describe("Context Builder", function()
   describe("open_context_builder", function()
     it("should show warning when context builder is not enabled", function()
       -- Setup with context builder disabled
-      ExplainIt.setup({
-        context_builder = { enabled = false }
-      })
+      ExplainIt.setup {
+        context_builder = { enabled = false },
+      }
 
       -- Try to open context builder
       ExplainIt.open_context_builder()
 
       -- Should show warning notification
-      assert.stub(vim.notify).was_called_with(
-        "Context Builder is not enabled. Set context_builder.enabled = true in setup()",
-        vim.log.levels.WARN
-      )
+      assert
+        .stub(vim.notify)
+        .was_called_with("Context Builder is not enabled. Set context_builder.enabled = true in setup()", vim.log.levels.WARN)
     end)
 
     it("should open context builder when enabled", function()
       -- Setup with context builder enabled
-      ExplainIt.setup({
+      ExplainIt.setup {
         context_builder = {
           enabled = true,
           window_config = {
             split = "vertical",
-            width = 0.4
-          }
-        }
-      })
+            width = 0.4,
+          },
+        },
+      }
 
       -- Mock the ContextBuilder module
       package.loaded["explain-it.context-builder"] = {
-        open = function(opts) end
+        open = function(opts) end,
       }
       local context_builder_stub = stub(package.loaded["explain-it.context-builder"], "open")
 
       -- Open context builder
-      ExplainIt.open_context_builder({ test = true })
+      ExplainIt.open_context_builder { test = true }
 
       -- Should call ContextBuilder.open
-      assert.stub(context_builder_stub).was_called_with({ test = true })
+      assert.stub(context_builder_stub).was_called_with { test = true }
 
       -- Cleanup
       context_builder_stub:revert()
@@ -76,28 +75,28 @@ describe("Context Builder", function()
   describe("Context Builder UI", function()
     it("should create a new buffer with correct settings", function()
       -- Setup
-      ExplainIt.setup({
+      ExplainIt.setup {
         context_builder = {
           enabled = true,
           window_config = {
             split = "vertical",
-            width = 0.4
-          }
-        }
-      })
+            width = 0.4,
+          },
+        },
+      }
 
       -- Mock Morph BEFORE requiring context-builder (morph is required at module load time)
       package.loaded["morph"] = {
         new = function(buf)
           return {
-            mount = function(self, tree) end
+            mount = function(self, tree) end,
           }
         end,
         h = setmetatable({}, {
           __call = function(self, name, attrs, children)
             return { type = "element", name = name, attrs = attrs, children = children }
-          end
-        })
+          end,
+        }),
       }
 
       -- Clear cached context-builder module so it reloads with mocked morph
@@ -116,7 +115,7 @@ describe("Context Builder", function()
             return {}
           end
           return nil
-        end
+        end,
       })
       vim.o = { columns = 120 }
 

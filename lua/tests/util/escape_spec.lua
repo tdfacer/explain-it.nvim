@@ -1,7 +1,6 @@
-package.path = package.path
-  .. ";../../explain-it/?.lua;../../explain-it/services/?.lua;../../explain-it/util/?.lua"
+package.path = package.path .. ";../../explain-it/?.lua;../../explain-it/services/?.lua;../../explain-it/util/?.lua"
 
-local escape = require "explain-it.util.escape"
+local escape = require("explain-it.util.escape")
 
 describe("escape", function()
   it("should escape double quotes", function()

@@ -1,24 +1,20 @@
-local buff = require "explain-it.util.buffer"
-local response_handler = require "explain-it.handlers.response"
-local escape = require "explain-it.util.escape"
-local chat_gpt = require "explain-it.services.chat-gpt"
-local D = require "explain-it.util.debug"
+local D = require("explain-it.util.debug")
+local buff = require("explain-it.util.buffer")
+local chat_gpt = require("explain-it.services.chat-gpt")
+local escape = require("explain-it.util.escape")
+local response_handler = require("explain-it.handlers.response")
 local ExplainIt = {}
 
 --- Sets up plugin with user-provided options
 ---@param opts any
-function ExplainIt.setup(opts)
-  _G.ExplainIt.config = require("explain-it.config").setup(opts)
-end
+function ExplainIt.setup(opts) _G.ExplainIt.config = require("explain-it.config").setup(opts) end
 
 --- Core function for preparing requests to external services. Based on input,
 --- will either pull the contents of the full buffer into a variable or just the
 --- visually selected text, then call call_chat_gpt with it.
 ---@param opts any
 function ExplainIt.explain_it(opts)
-  if not opts then
-    opts = {}
-  end
+  if not opts then opts = {} end
 
   opts.api_type = opts.api_type or "chat"
   opts.is_visual = opts.is_visual or false
@@ -59,9 +55,7 @@ function ExplainIt.call_chat_gpt(opts)
     ai_response = chat_gpt.call_gpt(opts.text, custom_prompt, "chat_command")
   end
   response_handler.notify_response(ai_response)
-  if opts.output_to_buffer then
-    response_handler.append_buffer_response(ai_response)
-  end
+  if opts.output_to_buffer then response_handler.append_buffer_response(ai_response) end
 end
 
 --- Opens the interactive AI Context Builder interface
@@ -132,7 +126,7 @@ function ExplainIt.focus_instruction_input()
   local renderer = instance.renderer
   if renderer then
     -- Simulate the 'i' keypress to focus instruction
-    vim.api.nvim_feedkeys('i', 'n', false)
+    vim.api.nvim_feedkeys("i", "n", false)
   end
 end
 

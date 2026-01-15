@@ -1,7 +1,6 @@
-package.path = package.path
-  .. ";../../explain-it/?.lua;../../explain-it/services/?.lua;../../explain-it/util/?.lua"
+package.path = package.path .. ";../../explain-it/?.lua;../../explain-it/services/?.lua;../../explain-it/util/?.lua"
 
-local testModule = require "lua.explain-it.util.strings"
+local testModule = require("lua.explain-it.util.strings")
 
 describe("util.strings", function()
   before_each(function()

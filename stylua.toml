@@ -1,5 +1,11 @@
+syntax = "LuaJIT"
 indent_type = "Spaces"
 indent_width = 2
-column_width = 100
+column_width = 120
 quote_style = "AutoPreferDouble"
-no_call_parentheses = true
+call_parentheses = "NoSingleTable"
+collapse_simple_statement = "Always"
+line_endings = "Unix"
+
+[sort_requires]
+enabled = true

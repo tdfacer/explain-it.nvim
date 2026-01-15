@@ -5,7 +5,7 @@ local M = {}
 --- Credit: tjdevries
 ---@return string
 M.get_visual_selection = function()
-  vim.cmd 'noau normal! "vy"'
+  vim.cmd('noau normal! "vy"')
 
   return vim.api.nvim_call_function("getreg", { "v" })
 end
@@ -22,7 +22,7 @@ end
 ---@param content string
 M.append_buffer_lines = function(bufnr, content)
   local lines = {}
-  for line in content:gmatch "[^\n]+" do
+  for line in content:gmatch("[^\n]+") do
     table.insert(lines, line)
   end
   vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, lines)

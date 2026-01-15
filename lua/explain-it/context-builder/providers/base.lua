@@ -33,20 +33,16 @@ function M.new(config)
     end,
     validate = config.validate or function()
       -- Default validation
-      if not config.command then
-        return false, "Command not specified"
-      end
+      if not config.command then return false, "Command not specified" end
       -- Check if command exists
       local handle = io.popen("which " .. (type(config.command) == "string" and config.command or "echo"))
       if handle then
         local result = handle:read("*a")
         handle:close()
-        if result and result ~= "" then
-          return true
-        end
+        if result and result ~= "" then return true end
       end
       return false, "Command not found: " .. tostring(config.command)
-    end
+    end,
   }
 
   setmetatable(provider, { __index = M })
@@ -101,18 +97,14 @@ function M:execute(context, instruction, callback)
     on_stdout = function(_, data, _)
       if data then
         for _, line in ipairs(data) do
-          if line ~= "" then
-            table.insert(stdout_chunks, line)
-          end
+          if line ~= "" then table.insert(stdout_chunks, line) end
         end
       end
     end,
     on_stderr = function(_, data, _)
       if data then
         for _, line in ipairs(data) do
-          if line ~= "" then
-            table.insert(stderr_chunks, line)
-          end
+          if line ~= "" then table.insert(stderr_chunks, line) end
         end
       end
     end,
@@ -141,8 +133,6 @@ end
 
 --- Get a human-readable description of the provider
 ---@return string
-function M:describe()
-  return string.format("Provider: %s (Command: %s)", self.name, tostring(self.command))
-end
+function M:describe() return string.format("Provider: %s (Command: %s)", self.name, tostring(self.command)) end
 
 return M

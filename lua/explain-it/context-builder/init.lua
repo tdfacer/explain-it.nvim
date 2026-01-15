@@ -8,32 +8,35 @@ M._instances = {}
 local morph_path = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ":p:h:h:h:h:h:h")
 vim.opt.rtp:prepend(morph_path)
 
-local Morph = require('morph')
+local Morph = require("morph")
 local h = Morph.h
 
 -- Load components
-local StatusBar = require('explain-it.context-builder.components.status_bar').StatusBar
-local ContextEditor = require('explain-it.context-builder.components.context_editor').ContextEditor
-local ConversationThread  -- Will be implemented inline for now
+local StatusBar = require("explain-it.context-builder.components.status_bar").StatusBar
+local ContextEditor = require("explain-it.context-builder.components.context_editor").ContextEditor
+local ConversationThread -- Will be implemented inline for now
+
+--- @class explain-it.context-builder.ContextBuilderProps
+--- @field register_context fun(ctx: morph.Ctx<any, any>)
 
 --- Main Context Builder component
----@param ctx morph.Ctx
+---@param ctx morph.Ctx<explain-it.context-builder.ContextBuilderProps, any>
 local function ContextBuilder(ctx)
-  if ctx.phase == 'mount' then
+  if ctx.phase == "mount" then
     ctx.state = {
       -- Context state
-      files = {},           -- Full file contents
-      snippets = {},        -- Visual selections
-      instruction = "",     -- Current instruction
+      files = {}, -- Full file contents
+      snippets = {}, -- Visual selections
+      instruction = "", -- Current instruction
 
       -- UI state
-      active_section = "context",  -- context|instruction|response
+      active_section = "context", -- context|instruction|response
       show_files = true,
       show_templates = false,
 
       -- Session state
       session_name = nil,
-      conversation = {},    -- Thread history
+      conversation = {}, -- Thread history
 
       -- Provider state
       provider = _G.ExplainIt.config.context_builder.default_provider or "openai",
@@ -49,179 +52,179 @@ local function ContextBuilder(ctx)
   -- Build the UI tree
   local result = {
     h(StatusBar, { state = state }),
-    '\n\n',
+    "\n\n",
   }
 
   -- Context section
-  table.insert(result, h.Title({}, '# AI Context Builder'))
-  table.insert(result, '\n\n')
+  table.insert(result, h.Title({}, "# AI Context Builder"))
+  table.insert(result, "\n\n")
 
   -- Show current context
-  table.insert(result, h.Title({}, '## Context'))
-  table.insert(result, '\n\n')
+  table.insert(result, h.Title({}, "## Context"))
+  table.insert(result, "\n\n")
 
   if #state.files == 0 and #state.snippets == 0 then
-    table.insert(result, h.Comment({}, 'No context added yet. Press "f" for files, "F" or "D" for other directories, "s" for snippets.'))
+    table.insert(
+      result,
+      h.Comment({}, 'No context added yet. Press "f" for files, "F" or "D" for other directories, "s" for snippets.')
+    )
   else
-    table.insert(result, h(ContextEditor, {
-      files = state.files,
-      snippets = state.snippets,
-      on_update = function(files, snippets)
-        state.files = files
-        state.snippets = snippets
-        ctx:update(state)
-      end
-    }))
+    table.insert(
+      result,
+      h(ContextEditor, {
+        files = state.files,
+        snippets = state.snippets,
+        on_update = function(files, snippets)
+          state.files = files
+          state.snippets = snippets
+          ctx:update(state)
+        end,
+      })
+    )
   end
 
-  table.insert(result, '\n\n')
+  table.insert(result, "\n\n")
 
   -- Instruction section
-  table.insert(result, h.Title({}, '## Instruction'))
-  table.insert(result, '\n')
+  table.insert(result, h.Title({}, "## Instruction"))
+  table.insert(result, "\n")
 
   if state.loading then
     table.insert(result, h.DiagnosticWarn({}, "⟳ Processing... Please wait..."))
-    table.insert(result, '\n')
+    table.insert(result, "\n")
     table.insert(result, h.Comment({}, "The AI is thinking. This may take a few seconds..."))
   else
     -- Show placeholder when empty, actual text otherwise
     if state.instruction == "" then
-      table.insert(result, h('text', {
-        id = 'instruction-input',
-        on_change = function(e)
-          -- When user starts typing, replace the placeholder
-          if e.text ~= "Type your instruction here..." then
-            state.instruction = e.text
-          else
-            state.instruction = ""
-          end
-          ctx:update(state)
-          e.bubble_up = false
-        end,
-        hl = state.active_section == 'instruction' and 'Visual' or 'Comment',
-      }, "Type your instruction here..."))
+      table.insert(
+        result,
+        h("text", {
+          id = "instruction-input",
+          on_change = function(e)
+            -- When user starts typing, replace the placeholder
+            if e.text ~= "Type your instruction here..." then
+              state.instruction = e.text
+            else
+              state.instruction = ""
+            end
+            ctx:update(state)
+            e.bubble_up = false
+          end,
+          hl = state.active_section == "instruction" and "Visual" or "Comment",
+        }, "Type your instruction here...")
+      )
     else
-      table.insert(result, h('text', {
-        id = 'instruction-input',
-        on_change = function(e)
-          state.instruction = e.text
-          ctx:update(state)
-          e.bubble_up = false
-        end,
-        hl = state.active_section == 'instruction' and 'Visual' or nil,
-      }, state.instruction))
+      table.insert(
+        result,
+        h("text", {
+          id = "instruction-input",
+          on_change = function(e)
+            state.instruction = e.text
+            ctx:update(state)
+            e.bubble_up = false
+          end,
+          hl = state.active_section == "instruction" and "Visual" or nil,
+        }, state.instruction)
+      )
     end
   end
 
-  table.insert(result, '\n\n')
+  table.insert(result, "\n\n")
 
   -- Conversation thread
   if #state.conversation > 0 then
-    table.insert(result, h.Title({}, '## Conversation'))
-    table.insert(result, '\n\n')
+    table.insert(result, h.Title({}, "## Conversation"))
+    table.insert(result, "\n\n")
     table.insert(result, h(ConversationThread, { messages = state.conversation }))
   end
 
   -- Global keybindings
-  return h('text', {
+  return h("text", {
     nmap = {
-      ['f'] = function()
+      ["f"] = function()
         -- Schedule the file selection to avoid textlock issues
         vim.schedule(function()
           -- Get current directory (fallback to cwd if buffer has no file)
           local current_dir = vim.fn.expand("%:p:h")
-          if current_dir == "" or not vim.fn.isdirectory(current_dir) then
-            current_dir = vim.fn.getcwd()
-          end
+          if current_dir == "" or not vim.fn.isdirectory(current_dir) then current_dir = vim.fn.getcwd() end
 
           -- Try using telescope if available
-          local has_telescope, telescope = pcall(require, 'telescope.builtin')
+          local has_telescope, telescope = pcall(require, "telescope.builtin")
           if has_telescope then
-            telescope.find_files({
+            telescope.find_files {
               prompt_title = "Add File to Context",
               cwd = current_dir,
               attach_mappings = function(prompt_bufnr, map)
-                local actions = require('telescope.actions')
-                local action_state = require('telescope.actions.state')
+                local actions = require("telescope.actions")
+                local action_state = require("telescope.actions.state")
 
                 actions.select_default:replace(function()
                   actions.close(prompt_bufnr)
                   local selection = action_state.get_selected_entry()
                   if selection then
                     local filepath = selection.path or selection[1]
-                    if filepath then
-                      M.add_file(filepath)
-                    end
+                    if filepath then M.add_file(filepath) end
                   end
                 end)
                 return true
               end,
-            })
+            }
           else
             -- Fallback to vim.ui.input with schedule
             vim.ui.input({
-              prompt = 'File path: ',
-              default = current_dir .. '/',
-              completion = 'file',
+              prompt = "File path: ",
+              default = current_dir .. "/",
+              completion = "file",
             }, function(file)
-              if file and file ~= "" then
-                M.add_file(file)
-              end
+              if file and file ~= "" then M.add_file(file) end
             end)
           end
         end)
-        return ''
+        return ""
       end,
-      ['F'] = function()
+      ["F"] = function()
         -- Add file using telescope-file-browser for directory navigation
         -- Note: Parent directory navigation may not work in all cases
         vim.schedule(function()
           -- Helper to open find_files in a directory
           local function open_find_files_in_dir(dir)
-            local has_telescope, telescope = pcall(require, 'telescope.builtin')
+            local has_telescope, telescope = pcall(require, "telescope.builtin")
             if has_telescope then
-              telescope.find_files({
+              telescope.find_files {
                 prompt_title = "Add File to Context (from " .. vim.fn.fnamemodify(dir, ":~") .. ")",
                 cwd = dir,
                 attach_mappings = function(prompt_bufnr, map)
-                  local actions = require('telescope.actions')
-                  local action_state = require('telescope.actions.state')
+                  local actions = require("telescope.actions")
+                  local action_state = require("telescope.actions.state")
 
                   actions.select_default:replace(function()
                     actions.close(prompt_bufnr)
                     local selection = action_state.get_selected_entry()
                     if selection then
                       local filepath = selection.path or selection[1]
-                      if filepath then
-                        M.add_file(filepath)
-                      end
+                      if filepath then M.add_file(filepath) end
                     end
                   end)
                   return true
                 end,
-              })
+              }
             else
               vim.ui.input({
-                prompt = 'File path: ',
-                default = dir .. '/',
-                completion = 'file',
+                prompt = "File path: ",
+                default = dir .. "/",
+                completion = "file",
               }, function(file)
-                if file and file ~= "" then
-                  M.add_file(file)
-                end
+                if file and file ~= "" then M.add_file(file) end
               end)
             end
           end
 
           -- Try telescope-file-browser for directory selection
-          local has_fb, fb = pcall(function()
-            return require("telescope").extensions.file_browser
-          end)
+          local has_fb, fb = pcall(function() return require("telescope").extensions.file_browser end)
 
           if has_fb and fb then
             local fb_actions = require("telescope._extensions.file_browser.actions")
-            fb.file_browser({
+            fb.file_browser {
               prompt_title = "Select Directory (Enter to select, 't' to nav into it for more browsing)",
               path = vim.fn.expand("~"),
               cwd = "~",
@@ -232,8 +235,8 @@ local function ContextBuilder(ctx)
               grouped = true,
               hide_parent_dir = false,
               attach_mappings = function(prompt_bufnr, map)
-                local actions = require('telescope.actions')
-                local action_state = require('telescope.actions.state')
+                local actions = require("telescope.actions")
+                local action_state = require("telescope.actions.state")
 
                 -- Override select to open find_files in selected directory
                 actions.select_default:replace(function()
@@ -242,25 +245,21 @@ local function ContextBuilder(ctx)
 
                   if entry then
                     local dir = entry.path or entry.Path
-                    if type(dir) == "table" and dir.absolute then
-                      dir = dir:absolute()
-                    end
-                    if dir and vim.fn.isdirectory(dir) == 1 then
-                      open_find_files_in_dir(dir)
-                    end
+                    if type(dir) == "table" and dir.absolute then dir = dir:absolute() end
+                    if dir and vim.fn.isdirectory(dir) == 1 then open_find_files_in_dir(dir) end
                   end
                 end)
 
                 -- Keep default file_browser mappings
                 return true
               end,
-            })
+            }
           else
             -- Fallback to vim.ui.input for directory
             vim.ui.input({
-              prompt = 'Directory to browse: ',
-              default = vim.fn.expand("~") .. '/',
-              completion = 'dir',
+              prompt = "Directory to browse: ",
+              default = vim.fn.expand("~") .. "/",
+              completion = "dir",
             }, function(dir)
               if not dir or dir == "" then return end
 
@@ -274,45 +273,41 @@ local function ContextBuilder(ctx)
             end)
           end
         end)
-        return ''
+        return ""
       end,
-      ['D'] = function()
+      ["D"] = function()
         -- Add file from a different directory
         vim.schedule(function()
           -- Helper to open find_files in a directory
           local function open_find_files_in_dir(dir)
-            local has_telescope, telescope = pcall(require, 'telescope.builtin')
+            local has_telescope, telescope = pcall(require, "telescope.builtin")
             if has_telescope then
-              telescope.find_files({
+              telescope.find_files {
                 prompt_title = "Add File to Context (from " .. vim.fn.fnamemodify(dir, ":~") .. ")",
                 cwd = dir,
                 attach_mappings = function(prompt_bufnr, map)
-                  local actions = require('telescope.actions')
-                  local action_state = require('telescope.actions.state')
+                  local actions = require("telescope.actions")
+                  local action_state = require("telescope.actions.state")
 
                   actions.select_default:replace(function()
                     actions.close(prompt_bufnr)
                     local selection = action_state.get_selected_entry()
                     if selection then
                       local filepath = selection.path or selection[1]
-                      if filepath then
-                        M.add_file(filepath)
-                      end
+                      if filepath then M.add_file(filepath) end
                     end
                   end)
                   return true
                 end,
-              })
+              }
             else
               -- Fallback to vim.ui.input
               vim.ui.input({
-                prompt = 'File path: ',
-                default = dir .. '/',
-                completion = 'file',
+                prompt = "File path: ",
+                default = dir .. "/",
+                completion = "file",
               }, function(file)
-                if file and file ~= "" then
-                  M.add_file(file)
-                end
+                if file and file ~= "" then M.add_file(file) end
               end)
             end
           end
@@ -351,9 +346,9 @@ local function ContextBuilder(ctx)
             else
               -- "Other" - prompt for path
               vim.ui.input({
-                prompt = 'Directory path: ',
-                default = home .. '/',
-                completion = 'dir',
+                prompt = "Directory path: ",
+                default = home .. "/",
+                completion = "dir",
               }, function(dir)
                 if not dir or dir == "" then return end
 
@@ -368,14 +363,14 @@ local function ContextBuilder(ctx)
             end
           end)
         end)
-        return ''
+        return ""
       end,
-      ['s'] = function()
+      ["s"] = function()
         -- TODO: Add snippet from visual selection
         vim.notify("Snippet selector not implemented yet", vim.log.levels.INFO)
-        return ''
+        return ""
       end,
-      ['i'] = function()
+      ["i"] = function()
         -- Focus instruction input by searching for the instruction section
         local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
         local instruction_line = nil
@@ -393,7 +388,7 @@ local function ContextBuilder(ctx)
 
         if instruction_line then
           -- Move cursor to the instruction line
-          vim.api.nvim_win_set_cursor(0, {instruction_line, 0})
+          vim.api.nvim_win_set_cursor(0, { instruction_line, 0 })
 
           -- Schedule the insert mode command to avoid textlock
           vim.schedule(function()
@@ -403,18 +398,18 @@ local function ContextBuilder(ctx)
               -- Clear the line first
               vim.api.nvim_set_current_line("")
               -- Then enter insert mode
-              vim.cmd('startinsert')
+              vim.cmd("startinsert")
             else
               -- Just enter insert mode at the beginning
-              vim.cmd('startinsert')
+              vim.cmd("startinsert")
             end
           end)
         else
           vim.notify("Could not find instruction input", vim.log.levels.WARN)
         end
-        return ''
+        return ""
       end,
-      ['<CR>'] = function()
+      ["<CR>"] = function()
         if state.instruction ~= "" and not state.loading then
           -- Execute the provider
           local buf = vim.api.nvim_get_current_buf()
@@ -427,21 +422,22 @@ local function ContextBuilder(ctx)
         elseif state.instruction == "" then
           vim.notify("Please enter an instruction first", vim.log.levels.WARN)
         end
-        return ''
+        return ""
       end,
-      ['q'] = function()
+      ["q"] = function()
         -- Close the context builder
-        vim.cmd('bdelete!')
-        return ''
+        vim.cmd("bdelete!")
+        return ""
       end,
-      ['e'] = function()
+      ["e"] = function()
         -- Export context to clipboard
         M.export_to_clipboard()
-        return ''
+        return ""
       end,
-      ['?'] = function()
+      ["?"] = function()
         -- Show help
-        vim.notify([[Context Builder Help:
+        vim.notify(
+          [[Context Builder Help:
 f - Add files from current directory
 F - Browse files via telescope file browser
 D - Quick directory menu (common paths)
@@ -452,14 +448,25 @@ e - Export context to clipboard
 q - Close Context Builder
 ? - Show this help
 
-Current provider: ]] .. (state.provider or _G.ExplainIt.config.context_builder.default_provider), vim.log.levels.INFO)
-        return ''
+Current provider: ]] .. (state.provider or _G.ExplainIt.config.context_builder.default_provider),
+          vim.log.levels.INFO
+        )
+        return ""
       end,
-    }
+    },
   }, result)
 end
 
+--- @class explain-it.context-builder.ConversationMessage
+--- @field role 'user' | 'assistant'
+--- @field content string
+--- @field timestamp number
+
+--- @class explain-it.context-builder.ConversationThreadProps
+--- @field messages explain-it.context-builder.ConversationMessage[]
+
 -- Inline ConversationThread component (simpler than a separate file)
+---@param ctx morph.Ctx<explain-it.context-builder.ConversationThreadProps, any>
 ConversationThread = function(ctx)
   local result = {}
 
@@ -468,28 +475,26 @@ ConversationThread = function(ctx)
     local timestamp = os.date("%H:%M:%S", msg.timestamp)
 
     if msg.role == "user" then
-      table.insert(result, h.Title({}, '### You '))
-      table.insert(result, h.Comment({}, '[' .. timestamp .. ']'))
+      table.insert(result, h.Title({}, "### You "))
+      table.insert(result, h.Comment({}, "[" .. timestamp .. "]"))
     else
-      table.insert(result, h.Title({}, '### AI '))
-      table.insert(result, h.Comment({}, '[' .. timestamp .. ']'))
+      table.insert(result, h.Title({}, "### AI "))
+      table.insert(result, h.Comment({}, "[" .. timestamp .. "]"))
     end
-    table.insert(result, '\n')
+    table.insert(result, "\n")
 
     -- Format the content with proper line breaks
-    local lines = vim.split(msg.content, '\n', { plain = true })
+    local lines = vim.split(msg.content, "\n", { plain = true })
     for j, line in ipairs(lines) do
       table.insert(result, line)
-      if j < #lines then
-        table.insert(result, '\n')
-      end
+      if j < #lines then table.insert(result, "\n") end
     end
 
     -- Add separator between messages
     if i < #ctx.props.messages then
-      table.insert(result, '\n\n---\n\n')
+      table.insert(result, "\n\n---\n\n")
     else
-      table.insert(result, '\n\n')
+      table.insert(result, "\n\n")
     end
   end
 
@@ -509,19 +514,19 @@ function M.open(opts)
 
   -- Open in a split
   if config.split == "vertical" then
-    vim.cmd('vsplit')
+    vim.cmd("vsplit")
     vim.api.nvim_win_set_width(0, math.floor(vim.o.columns * config.width))
   else
-    vim.cmd('split')
+    vim.cmd("split")
   end
 
   vim.api.nvim_win_set_buf(0, buf)
 
   -- Set buffer options
-  vim.bo[buf].buftype = 'nofile'
-  vim.bo[buf].bufhidden = 'wipe'
+  vim.bo[buf].buftype = "nofile"
+  vim.bo[buf].bufhidden = "wipe"
   vim.bo[buf].swapfile = false
-  vim.bo[buf].filetype = 'explain-it-context'
+  vim.bo[buf].filetype = "explain-it-context"
 
   -- Create context storage
   local context_ref = nil
@@ -534,18 +539,16 @@ function M.open(opts)
       M._instances[buf] = {
         buffer = buf,
         context = ctx,
-        renderer = renderer
+        renderer = renderer,
       }
-    end
+    end,
   }, {}))
 
   -- Set buffer autocmd to clean up on close
-  vim.api.nvim_create_autocmd({"BufDelete", "BufWipeout"}, {
+  vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
     buffer = buf,
     once = true,
-    callback = function()
-      M._instances[buf] = nil
-    end
+    callback = function() M._instances[buf] = nil end,
   })
 end
 
@@ -554,9 +557,7 @@ end
 function M.get_active_instance()
   -- Find first active instance
   for buf, instance in pairs(M._instances) do
-    if vim.api.nvim_buf_is_valid(buf) then
-      return instance
-    end
+    if vim.api.nvim_buf_is_valid(buf) then return instance end
   end
   return nil
 end
@@ -591,11 +592,9 @@ end
 --- Get list of configured providers
 ---@return table List of provider names
 function M.get_providers()
-  local providers = { "openai" }  -- OpenAI is always available
+  local providers = { "openai" } -- OpenAI is always available
   for name, _ in pairs(_G.ExplainIt.config.context_builder.providers) do
-    if name ~= "openai" then
-      table.insert(providers, name)
-    end
+    if name ~= "openai" then table.insert(providers, name) end
   end
   return providers
 end
@@ -611,8 +610,8 @@ function M.add_file(filepath)
   end
 
   -- Validate and normalize file path
-  filepath = vim.fn.expand(filepath)  -- Expand ~ and other shortcuts
-  filepath = vim.fn.fnamemodify(filepath, ':p')  -- Get absolute path
+  filepath = vim.fn.expand(filepath) -- Expand ~ and other shortcuts
+  filepath = vim.fn.fnamemodify(filepath, ":p") -- Get absolute path
 
   -- Check if it's a directory
   if vim.fn.isdirectory(filepath) == 1 then
@@ -734,10 +733,10 @@ function M.export_to_clipboard()
     for i, file in ipairs(state.files) do
       table.insert(lines, "### " .. file.path)
       table.insert(lines, "")
-      table.insert(lines, "```" .. vim.fn.fnamemodify(file.path, ":e"))  -- file extension for syntax highlighting
+      table.insert(lines, "```" .. vim.fn.fnamemodify(file.path, ":e")) -- file extension for syntax highlighting
       table.insert(lines, file.content)
       if not file.content:match("\n$") then
-        table.insert(lines, "")  -- Ensure newline before closing ```
+        table.insert(lines, "") -- Ensure newline before closing ```
       end
       table.insert(lines, "```")
       table.insert(lines, "")
@@ -754,9 +753,7 @@ function M.export_to_clipboard()
       table.insert(lines, "")
       table.insert(lines, "```" .. vim.fn.fnamemodify(snippet.path, ":e"))
       table.insert(lines, snippet.content)
-      if not snippet.content:match("\n$") then
-        table.insert(lines, "")
-      end
+      if not snippet.content:match("\n$") then table.insert(lines, "") end
       table.insert(lines, "```")
       table.insert(lines, "")
     end
@@ -795,15 +792,17 @@ function M.export_to_clipboard()
 
   -- Copy to clipboard
   vim.fn.setreg("+", content)
-  vim.fn.setreg("*", content)  -- Also copy to selection register
+  vim.fn.setreg("*", content) -- Also copy to selection register
 
   -- Calculate size info
   local file_count = #state.files
   local snippet_count = #state.snippets
   local size_kb = math.floor(#content / 1024)
 
-  vim.notify(string.format("Exported context to clipboard: %d files, %d snippets (%d KB)",
-    file_count, snippet_count, size_kb), vim.log.levels.INFO)
+  vim.notify(
+    string.format("Exported context to clipboard: %d files, %d snippets (%d KB)", file_count, snippet_count, size_kb),
+    vim.log.levels.INFO
+  )
 
   return true
 end
@@ -854,9 +853,7 @@ function M.build_context_string(state)
       table.insert(lines, "File: " .. file.path)
       table.insert(lines, "```" .. vim.fn.fnamemodify(file.path, ":e"))
       table.insert(lines, file.content)
-      if not file.content:match("\n$") then
-        table.insert(lines, "")
-      end
+      if not file.content:match("\n$") then table.insert(lines, "") end
       table.insert(lines, "```")
       table.insert(lines, "")
     end
@@ -871,9 +868,7 @@ function M.build_context_string(state)
       table.insert(lines, "From " .. snippet.path .. ":" .. snippet.start_line .. "-" .. snippet.end_line)
       table.insert(lines, "```" .. vim.fn.fnamemodify(snippet.path, ":e"))
       table.insert(lines, snippet.content)
-      if not snippet.content:match("\n$") then
-        table.insert(lines, "")
-      end
+      if not snippet.content:match("\n$") then table.insert(lines, "") end
       table.insert(lines, "```")
       table.insert(lines, "")
     end
@@ -938,56 +933,46 @@ function M.execute_context(instance)
     end
 
     -- Call OpenAI asynchronously
-    chat_gpt.call_gpt_async(
-      joined,
-      nil,
-      "chat_command",
-      function(ai_response)
-        -- Success callback
-        -- Restore original model if we overrode it
-        if original_model then
-          _G.ExplainIt.config.openai_chat_model = original_model
-        end
+    chat_gpt.call_gpt_async(joined, nil, "chat_command", function(ai_response)
+      -- Success callback
+      -- Restore original model if we overrode it
+      if original_model then _G.ExplainIt.config.openai_chat_model = original_model end
 
-        if ai_response and ai_response.response then
-          -- Add to conversation
-          table.insert(state.conversation, {
-            role = "user",
-            content = state.instruction,
-            timestamp = os.time(),
-          })
+      if ai_response and ai_response.response then
+        -- Add to conversation
+        table.insert(state.conversation, {
+          role = "user",
+          content = state.instruction,
+          timestamp = os.time(),
+        })
 
-          table.insert(state.conversation, {
-            role = "assistant",
-            content = ai_response.response,
-            timestamp = os.time(),
-          })
+        table.insert(state.conversation, {
+          role = "assistant",
+          content = ai_response.response,
+          timestamp = os.time(),
+        })
 
-          -- Clear instruction
-          state.instruction = ""
-          state.loading = false
-          ctx:update(state)
+        -- Clear instruction
+        state.instruction = ""
+        state.loading = false
+        ctx:update(state)
 
-          vim.notify("Response received from " .. provider_name, vim.log.levels.INFO)
-        else
-          -- Error occurred
-          vim.notify("No response received from " .. provider_name, vim.log.levels.ERROR)
-          state.loading = false
-          ctx:update(state)
-        end
-      end,
-      function(error)
-        -- Error callback
-        -- Restore original model if we overrode it
-        if original_model then
-          _G.ExplainIt.config.openai_chat_model = original_model
-        end
-
-        vim.notify("OpenAI API error: " .. error, vim.log.levels.ERROR)
+        vim.notify("Response received from " .. provider_name, vim.log.levels.INFO)
+      else
+        -- Error occurred
+        vim.notify("No response received from " .. provider_name, vim.log.levels.ERROR)
         state.loading = false
         ctx:update(state)
       end
-    )
+    end, function(error)
+      -- Error callback
+      -- Restore original model if we overrode it
+      if original_model then _G.ExplainIt.config.openai_chat_model = original_model end
+
+      vim.notify("OpenAI API error: " .. error, vim.log.levels.ERROR)
+      state.loading = false
+      ctx:update(state)
+    end)
   else
     -- Use CLI provider
     local cli = require("explain-it.context-builder.providers.cli")

@@ -1,12 +1,12 @@
-local mock = require "luassert.mock"
-local stub = require "luassert.stub"
+local mock = require("luassert.mock")
+local stub = require("luassert.stub")
 
-local ExplainIt = require "explain-it"
-local buff = require "explain-it.util.buffer"
-local escape = require "explain-it.util.escape"
-local chat_gpt = require "explain-it.services.chat-gpt"
-local notify = require "notify"
-local response_handler = require "explain-it.handlers.response"
+local ExplainIt = require("explain-it")
+local buff = require("explain-it.util.buffer")
+local chat_gpt = require("explain-it.services.chat-gpt")
+local escape = require("explain-it.util.escape")
+local notify = require("notify")
+local response_handler = require("explain-it.handlers.response")
 
 describe("ExplainIt", function()
   before_each(function()
@@ -32,8 +32,8 @@ describe("ExplainIt", function()
     end)
 
     it("should call call_chat_gpt with buffer lines if is_visual is false", function()
-      buff.get_buffer_lines.returns "buffer lines"
-      escape.get_escaped_string.returns "escaped string"
+      buff.get_buffer_lines.returns("buffer lines")
+      escape.get_escaped_string.returns("escaped string")
       ExplainIt.explain_it { is_visual = false }
       assert.stub(ExplainIt.call_chat_gpt).was_called_with {
         api_type = "chat",
@@ -45,8 +45,8 @@ describe("ExplainIt", function()
     end)
 
     it("should call call_chat_gpt with visual selection if is_visual is true", function()
-      buff.get_visual_selection.returns "visual selection"
-      escape.get_escaped_string.returns "escaped string"
+      buff.get_visual_selection.returns("visual selection")
+      escape.get_escaped_string.returns("escaped string")
       ExplainIt.explain_it { is_visual = true }
       assert.stub(ExplainIt.call_chat_gpt).was_called_with {
         api_type = "chat",

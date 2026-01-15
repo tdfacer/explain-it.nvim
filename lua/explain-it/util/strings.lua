@@ -6,12 +6,12 @@ local M = {}
 function M.format_string_with_line_breaks(str)
   local formattedStr = ""
   local lineLength = 0
-  for line in str:gmatch "[^\r\n]+" do -- split string into lines
+  for line in str:gmatch("[^\r\n]+") do -- split string into lines
     if #line <= _G.ExplainIt.config.max_notification_width then
       formattedStr = formattedStr .. line .. "\n" -- preserve newline
       lineLength = 0
     else
-      for word in line:gmatch "%S+" do -- split line into words
+      for word in line:gmatch("%S+") do -- split line into words
         if lineLength + #word > _G.ExplainIt.config.max_notification_width then
           formattedStr = formattedStr .. "\n" .. word
           lineLength = #word
@@ -33,9 +33,7 @@ end
 ---@param str string
 ---@return string
 M.truncate_string = function(str, len)
-  if string.len(str) > len then
-    return string.sub(str, 1, len) .. "..."
-  end
+  if string.len(str) > len then return string.sub(str, 1, len) .. "..." end
   return str
 end
 

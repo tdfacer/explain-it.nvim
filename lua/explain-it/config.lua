@@ -25,7 +25,7 @@ M.options = {
 
   -- Context Builder options
   context_builder = {
-    enabled = false,  -- Opt-in feature
+    enabled = false, -- Opt-in feature
 
     -- Provider configuration
     default_provider = "openai",
@@ -48,12 +48,12 @@ M.options = {
     -- Session management
     session_dir = vim.fn.stdpath("data") .. "/explain-it/sessions",
     auto_save = true,
-    auto_save_interval = 300,  -- seconds
+    auto_save_interval = 300, -- seconds
 
     -- UI preferences
     window_config = {
       split = "vertical",
-      width = 0.4,  -- 40% of screen
+      width = 0.4, -- 40% of screen
     },
 
     -- Templates
@@ -75,7 +75,7 @@ function M.setup(options)
 
   M.options = vim.tbl_deep_extend("keep", options, M.options)
 
-  local system = require "explain-it.system"
+  local system = require("explain-it.system")
   system.make_system_call(string.format("mkdir -p %s", M.options.output_directory))
 
   -- Create Context Builder directories if enabled

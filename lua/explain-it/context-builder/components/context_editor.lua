@@ -1,61 +1,71 @@
-local Morph = require('morph')
+local Morph = require("morph")
 local h = Morph.h
 
 local M = {}
 
+--- @class explain-it.context-builder.components.context_editor.FileItem
+--- @field path string
+--- @field content string
+--- @field start_line number
+--- @field end_line number
+
+--- @class explain-it.context-builder.components.context_editor.ContextItemProps
+--- @field item explain-it.context-builder.components.context_editor.FileItem
+--- @field type 'file' | 'snippet'
+--- @field on_remove fun(item: explain-it.context-builder.components.context_editor.FileItem)
+
 --- Context item component for displaying a file or snippet
----@param ctx morph.Ctx
+---@param ctx morph.Ctx<explain-it.context-builder.components.context_editor.ContextItemProps, { expanded: boolean }>
 local function ContextItem(ctx)
   local item = ctx.props.item
   local type = ctx.props.type
   local on_remove = ctx.props.on_remove
 
-  if ctx.phase == 'mount' then
-    ctx.state = { expanded = true }
-  end
+  if ctx.phase == "mount" then ctx.state = { expanded = true } end
 
   local state = ctx.state
 
   local header = {}
 
   -- Build header
-  table.insert(header, h('text', {
-    nmap = {
-      ['x'] = function()
-        on_remove(item)
-        return ''
-      end,
-      ['<Space>'] = function()
-        state.expanded = not state.expanded
-        ctx:update(state)
-        return ''
-      end,
-    }
-  }, {
-    state.expanded and '▼ ' or '▶ ',
-    type == 'file' and h.Directory({}, item.path) or
-    h.String({}, item.path .. ':' .. item.start_line .. '-' .. item.end_line),
-    ' ',
-    h.Comment({}, '[x to remove, space to toggle]'),
-  }))
+  table.insert(
+    header,
+    h("text", {
+      nmap = {
+        ["x"] = function()
+          on_remove(item)
+          return ""
+        end,
+        ["<Space>"] = function()
+          state.expanded = not state.expanded
+          ctx:update(state)
+          return ""
+        end,
+      },
+    }, {
+      state.expanded and "▼ " or "▶ ",
+      type == "file" and h.Directory({}, item.path)
+        or h.String({}, item.path .. ":" .. item.start_line .. "-" .. item.end_line),
+      " ",
+      h.Comment({}, "[x to remove, space to toggle]"),
+    })
+  )
 
   -- Build content
   local content = {}
   if state.expanded then
-    table.insert(content, '\n')
+    table.insert(content, "\n")
 
     -- Show preview of content
-    if type == 'file' then
+    if type == "file" then
       -- Show first few lines of file
       local preview = item.content:match("^(.-\n.-\n.-\n.-\n.-\n)") or item.content
       local is_truncated = #preview < #item.content
-      table.insert(content, h('text', { hl = 'Normal' }, preview))
-      if is_truncated then
-        table.insert(content, h.Comment({}, '... (truncated)'))
-      end
+      table.insert(content, h("text", { hl = "Normal" }, preview))
+      if is_truncated then table.insert(content, h.Comment({}, "... (truncated)")) end
     else
       -- Show snippet content
-      table.insert(content, h('text', { hl = 'Normal' }, item.content))
+      table.insert(content, h("text", { hl = "Normal" }, item.content))
     end
   end
 
@@ -65,8 +75,13 @@ local function ContextItem(ctx)
   }
 end
 
+--- @class explain-it.context-builder.components.context_editor.ContextEditorProps
+--- @field files? table[]
+--- @field snippets? table[]
+--- @field on_update? fun(files: table[], snippets: table[])
+
 --- Main context editor component
----@param ctx morph.Ctx
+---@param ctx morph.Ctx<explain-it.context-builder.components.context_editor.ContextEditorProps, any>
 function M.ContextEditor(ctx)
   local files = ctx.props.files or {}
   local snippets = ctx.props.snippets or {}
@@ -78,9 +93,7 @@ function M.ContextEditor(ctx)
   local function remove_file(file)
     local new_files = {}
     for _, f in ipairs(files) do
-      if f ~= file then
-        table.insert(new_files, f)
-      end
+      if f ~= file then table.insert(new_files, f) end
     end
     on_update(new_files, snippets)
   end
@@ -88,54 +101,64 @@ function M.ContextEditor(ctx)
   local function remove_snippet(snippet)
     local new_snippets = {}
     for _, s in ipairs(snippets) do
-      if s ~= snippet then
-        table.insert(new_snippets, s)
-      end
+      if s ~= snippet then table.insert(new_snippets, s) end
     end
     on_update(files, new_snippets)
   end
 
   -- Show files
   if #files > 0 then
-    table.insert(result, h.Title({}, '### Files (' .. #files .. ')'))
-    table.insert(result, '\n\n')
+    table.insert(result, h.Title({}, "### Files (" .. #files .. ")"))
+    table.insert(result, "\n\n")
 
     for i, file in ipairs(files) do
-      table.insert(result, h(ContextItem, {
-        key = 'file-' .. i,
-        item = file,
-        type = 'file',
-        on_remove = remove_file,
-      }))
-      table.insert(result, '\n')
+      table.insert(
+        result,
+        h(ContextItem, {
+          key = "file-" .. i,
+          item = file,
+          type = "file",
+          on_remove = remove_file,
+        })
+      )
+      table.insert(result, "\n")
     end
 
-    table.insert(result, '\n')
+    table.insert(result, "\n")
   end
 
   -- Show snippets
   if #snippets > 0 then
-    table.insert(result, h.Title({}, '### Snippets (' .. #snippets .. ')'))
-    table.insert(result, '\n\n')
+    table.insert(result, h.Title({}, "### Snippets (" .. #snippets .. ")"))
+    table.insert(result, "\n\n")
 
     for i, snippet in ipairs(snippets) do
-      table.insert(result, h(ContextItem, {
-        key = 'snippet-' .. i,
-        item = snippet,
-        type = 'snippet',
-        on_remove = remove_snippet,
-      }))
-      table.insert(result, '\n')
+      table.insert(
+        result,
+        h(ContextItem, {
+          key = "snippet-" .. i,
+          item = snippet,
+          type = "snippet",
+          on_remove = remove_snippet,
+        })
+      )
+      table.insert(result, "\n")
     end
   end
 
   -- Show help if empty
   if #files == 0 and #snippets == 0 then
-    table.insert(result, h.Comment({}, [[No context added yet.
+    table.insert(
+      result,
+      h.Comment(
+        {},
+        [[No context added yet.
 
 Press "f" to browse and add files
 Press "s" to add snippet from visual selection in another buffer
-Press "t" to load a template]]))
+Press "t" to load a template]]
+      )
+    )
   end
 
   -- Show total size info
@@ -148,8 +171,8 @@ Press "t" to load a template]]))
       total_size = total_size + #snippet.content
     end
 
-    table.insert(result, '\n')
-    table.insert(result, h.Comment({}, string.format('Total context size: %d characters', total_size)))
+    table.insert(result, "\n")
+    table.insert(result, h.Comment({}, string.format("Total context size: %d characters", total_size)))
   end
 
   return result

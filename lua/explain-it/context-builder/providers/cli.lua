@@ -1,4 +1,4 @@
-local BaseProvider = require('explain-it.context-builder.providers.base')
+local BaseProvider = require("explain-it.context-builder.providers.base")
 
 local M = {}
 
@@ -6,7 +6,7 @@ local M = {}
 ---@param config table Provider configuration from setup
 ---@return AIProvider
 function M.create_from_config(name, config)
-  return BaseProvider.new({
+  return BaseProvider.new {
     name = name,
     command = config.command,
     args = config.args,
@@ -16,9 +16,7 @@ function M.create_from_config(name, config)
       -- Default format: context followed by instruction
       local formatted = ""
 
-      if context and context ~= "" then
-        formatted = formatted .. "Context:\n" .. context .. "\n\n"
-      end
+      if context and context ~= "" then formatted = formatted .. "Context:\n" .. context .. "\n\n" end
 
       formatted = formatted .. "Instruction: " .. instruction
 
@@ -35,23 +33,19 @@ function M.create_from_config(name, config)
     end,
 
     validate = function()
-      if not config.command or config.command == "" then
-        return false, "No command specified for provider " .. name
-      end
+      if not config.command or config.command == "" then return false, "No command specified for provider " .. name end
 
       -- Check if command is available
       local handle = io.popen("command -v " .. config.command .. " 2>/dev/null")
       if handle then
         local result = handle:read("*a")
         handle:close()
-        if result and result ~= "" then
-          return true
-        end
+        if result and result ~= "" then return true end
       end
 
       return false, "Command not found: " .. config.command .. ". Please ensure it is installed and in PATH."
-    end
-  })
+    end,
+  }
 end
 
 --- Predefined configurations for common CLI tools
@@ -74,7 +68,7 @@ M.presets = {
     streaming = true,
     parse_response = function(output)
       -- Ollama includes some control characters we need to strip
-      output = output:gsub("\x1b%[[0-9;]*[mGKH]", "")  -- Remove ANSI escape codes
+      output = output:gsub("\x1b%[[0-9;]*[mGKH]", "") -- Remove ANSI escape codes
       return output
     end,
   },
@@ -89,8 +83,6 @@ M.presets = {
 --- Get a preset configuration by name
 ---@param name string Preset name
 ---@return table|nil
-function M.get_preset(name)
-  return M.presets[name]
-end
+function M.get_preset(name) return M.presets[name] end
 
 return M
