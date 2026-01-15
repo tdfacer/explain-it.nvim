@@ -61,7 +61,7 @@ local function ContextBuilder(ctx)
   table.insert(result, '\n\n')
 
   if #state.files == 0 and #state.snippets == 0 then
-    table.insert(result, h.Comment({}, 'No context added yet. Press "f" to add files, "F" to browse other directories, or "s" for snippets.'))
+    table.insert(result, h.Comment({}, 'No context added yet. Press "f" for files, "F" or "D" for other directories, "s" for snippets.'))
   else
     table.insert(result, h(ContextEditor, {
       files = state.files,
@@ -168,6 +168,109 @@ local function ContextBuilder(ctx)
               if file and file ~= "" then
                 M.add_file(file)
               end
+            end)
+          end
+        end)
+        return ''
+      end,
+      ['D'] = function()
+        -- Add file using telescope-file-browser for directory navigation
+        -- Note: Parent directory navigation may not work in all cases
+        vim.schedule(function()
+          -- Helper to open find_files in a directory
+          local function open_find_files_in_dir(dir)
+            local has_telescope, telescope = pcall(require, 'telescope.builtin')
+            if has_telescope then
+              telescope.find_files({
+                prompt_title = "Add File to Context (from " .. vim.fn.fnamemodify(dir, ":~") .. ")",
+                cwd = dir,
+                attach_mappings = function(prompt_bufnr, map)
+                  local actions = require('telescope.actions')
+                  local action_state = require('telescope.actions.state')
+
+                  actions.select_default:replace(function()
+                    actions.close(prompt_bufnr)
+                    local selection = action_state.get_selected_entry()
+                    if selection then
+                      local filepath = selection.path or selection[1]
+                      if filepath then
+                        M.add_file(filepath)
+                      end
+                    end
+                  end)
+                  return true
+                end,
+              })
+            else
+              vim.ui.input({
+                prompt = 'File path: ',
+                default = dir .. '/',
+                completion = 'file',
+              }, function(file)
+                if file and file ~= "" then
+                  M.add_file(file)
+                end
+              end)
+            end
+          end
+
+          -- Try telescope-file-browser for directory selection
+          local has_fb, fb = pcall(function()
+            return require("telescope").extensions.file_browser
+          end)
+
+          if has_fb and fb then
+            local fb_actions = require("telescope._extensions.file_browser.actions")
+            fb.file_browser({
+              prompt_title = "Select Directory (Enter to select, navigate into folders)",
+              path = vim.fn.expand("~"),
+              cwd = "~",
+              cwd_to_path = false,
+              files = true,
+              auto_depth = true,
+              -- depth = false,
+              grouped = true,
+              hide_parent_dir = false,
+              attach_mappings = function(prompt_bufnr, map)
+                local actions = require('telescope.actions')
+                local action_state = require('telescope.actions.state')
+
+                -- Override select to open find_files in selected directory
+                actions.select_default:replace(function()
+                  local entry = action_state.get_selected_entry()
+                  actions.close(prompt_bufnr)
+
+                  if entry then
+                    local dir = entry.path or entry.Path
+                    if type(dir) == "table" and dir.absolute then
+                      dir = dir:absolute()
+                    end
+                    if dir and vim.fn.isdirectory(dir) == 1 then
+                      open_find_files_in_dir(dir)
+                    end
+                  end
+                end)
+
+                -- Keep default file_browser mappings
+                return true
+              end,
+            })
+          else
+            -- Fallback to vim.ui.input for directory
+            vim.ui.input({
+              prompt = 'Directory to browse: ',
+              default = vim.fn.expand("~") .. '/',
+              completion = 'dir',
+            }, function(dir)
+              if not dir or dir == "" then return end
+
+              dir = vim.fn.expand(dir)
+              if vim.fn.isdirectory(dir) ~= 1 then
+                vim.notify("Not a valid directory: " .. dir, vim.log.levels.ERROR)
+                return
+              end
+
+              open_find_files_in_dir(dir)
             end)
           end
         end)
@@ -340,7 +443,8 @@ local function ContextBuilder(ctx)
         -- Show help
         vim.notify([[Context Builder Help:
 f - Add files from current directory
-F - Add files from any directory
+F - Add files from any directory (quick menu)
+D - Add files via directory browser (telescope)
 s - Add snippets to context
 i - Focus instruction input
 e - Export context to clipboard
