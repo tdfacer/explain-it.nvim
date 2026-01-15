@@ -136,6 +136,21 @@ function ExplainIt.focus_instruction_input()
   end
 end
 
+--- Switch the AI provider for the active Context Builder
+---@param provider_name string Name of the provider to switch to
+---@return boolean success
+function ExplainIt.switch_provider(provider_name)
+  local ContextBuilder = require("explain-it.context-builder")
+  return ContextBuilder.switch_provider(provider_name)
+end
+
+--- Get list of configured AI providers
+---@return table List of provider names
+function ExplainIt.get_providers()
+  local ContextBuilder = require("explain-it.context-builder")
+  return ContextBuilder.get_providers()
+end
+
 _G.ExplainIt = ExplainIt
 
 return _G.ExplainIt

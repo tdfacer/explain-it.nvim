@@ -362,6 +362,45 @@ function M.get_active_instance()
   return nil
 end
 
+--- Switch the provider for the active Context Builder
+---@param provider_name string Name of the provider to switch to
+---@return boolean success
+function M.switch_provider(provider_name)
+  local instance = M.get_active_instance()
+  if not instance then
+    vim.notify("No active Context Builder found", vim.log.levels.WARN)
+    return false
+  end
+
+  -- Validate provider exists in config
+  local provider_config = _G.ExplainIt.config.context_builder.providers[provider_name]
+  if not provider_config and provider_name ~= "openai" then
+    vim.notify("Provider not configured: " .. provider_name, vim.log.levels.ERROR)
+    return false
+  end
+
+  -- Update state
+  local ctx = instance.context
+  local state = ctx.state
+  state.provider = provider_name
+  ctx:update(state)
+
+  vim.notify("Switched to provider: " .. provider_name, vim.log.levels.INFO)
+  return true
+end
+
+--- Get list of configured providers
+---@return table List of provider names
+function M.get_providers()
+  local providers = { "openai" }  -- OpenAI is always available
+  for name, _ in pairs(_G.ExplainIt.config.context_builder.providers) do
+    if name ~= "openai" then
+      table.insert(providers, name)
+    end
+  end
+  return providers
+end
+
 --- Add a file to the active Context Builder
 ---@param filepath string Path to the file
 ---@return boolean success
