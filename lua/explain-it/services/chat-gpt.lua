@@ -12,7 +12,7 @@ local M = {}
 
 ---@alias completion_command string
 local completion_command = [[
-  curl https://api.openai.com/v1/completions \
+  curl ##BASE_API##/completions \
     2>/dev/null \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer ##API_KEY##" \
@@ -26,7 +26,7 @@ local completion_command = [[
 
 ---@alias chat_command string
 local chat_command = [[
-  curl https://api.openai.com/v1/chat/completions \
+  curl ##BASE_API##/chat/completions \
     2>/dev/null \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer ##API_KEY##" \
@@ -97,11 +97,20 @@ end
 ---@return string
 M.get_formatted_command = function(escaped_input, question, command_type)
   local command_str = ""
+  local model = ""
+  local base_api = _G.ExplainIt.config.model_base_api or "https://api.openai.com/v1"
+  -- Remove trailing slash if present for consistent URL building
+  base_api = base_api:gsub("/$", "")
+
   if command_type == "chat_command" then
-    command_str = COMMANDS.chat:gsub("##MODEL##", _G.ExplainIt.config.openai_chat_model)
+    model = _G.ExplainIt.config.openai_chat_model
+    command_str = COMMANDS.chat:gsub("##MODEL##", model)
   else
-    command_str = COMMANDS.completion:gsub("##MODEL##", _G.ExplainIt.config.openai_completion_model)
+    model = _G.ExplainIt.config.openai_completion_model
+    command_str = COMMANDS.completion:gsub("##MODEL##", model)
   end
+  command_str = command_str:gsub("##BASE_API##", base_api)
+  D.log_always("chat-gpt", "Using model: %s (api: %s, base: %s)", model, command_type, base_api)
   local api_key = os.getenv "CHAT_GPT_API_KEY"
   if not api_key or api_key == "" then
     D.log("chat-gpt.get_formatted_command", "Failed to get CHAT_GPT_API_KEY")

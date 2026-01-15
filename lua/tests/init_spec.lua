@@ -36,7 +36,7 @@ describe("ExplainIt", function()
       escape.get_escaped_string.returns "escaped string"
       ExplainIt.explain_it { is_visual = false }
       assert.stub(ExplainIt.call_chat_gpt).was_called_with {
-        api_type = "completion",
+        api_type = "chat",
         custom_prompt = false,
         text = "escaped string",
         is_visual = false,
@@ -49,7 +49,7 @@ describe("ExplainIt", function()
       escape.get_escaped_string.returns "escaped string"
       ExplainIt.explain_it { is_visual = true }
       assert.stub(ExplainIt.call_chat_gpt).was_called_with {
-        api_type = "completion",
+        api_type = "chat",
         custom_prompt = false,
         text = "escaped string",
         is_visual = true,

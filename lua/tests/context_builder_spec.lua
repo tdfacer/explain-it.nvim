@@ -86,24 +86,42 @@ describe("Context Builder", function()
         }
       })
 
-      -- Load the actual context builder module
-      local ContextBuilder = require("explain-it.context-builder")
-
-      -- Mock Morph since it's in parent directory
+      -- Mock Morph BEFORE requiring context-builder (morph is required at module load time)
       package.loaded["morph"] = {
         new = function(buf)
           return {
             mount = function(self, tree) end
           }
         end,
-        h = function(name, attrs, children)
-          return { type = "element", name = name, attrs = attrs, children = children }
-        end
+        h = setmetatable({}, {
+          __call = function(self, name, attrs, children)
+            return { type = "element", name = name, attrs = attrs, children = children }
+          end
+        })
       }
 
-      -- Mock vim.bo and vim.o
-      vim.bo = {}
+      -- Clear cached context-builder module so it reloads with mocked morph
+      package.loaded["explain-it.context-builder"] = nil
+      package.loaded["explain-it.context-builder.components.status_bar"] = nil
+      package.loaded["explain-it.context-builder.components.context_editor"] = nil
+
+      -- Now load the context builder module (will use mocked morph)
+      local ContextBuilder = require("explain-it.context-builder")
+
+      -- Mock vim.bo (needs to support vim.bo[bufnr] indexing) and vim.o
+      vim.bo = setmetatable({}, {
+        __index = function(t, k)
+          if type(k) == "number" then
+            -- Return an empty table for buffer-specific options
+            return {}
+          end
+          return nil
+        end
+      })
       vim.o = { columns = 120 }
+
+      -- Also stub nvim_create_autocmd since it's called in open()
+      stub(vim.api, "nvim_create_autocmd")
 
       -- Call open
       ContextBuilder.open()
@@ -121,7 +139,11 @@ describe("Context Builder", function()
       assert.stub(vim.api.nvim_win_set_width).was_called_with(0, 48)
 
       -- Cleanup
+      vim.api.nvim_create_autocmd:revert()
       package.loaded["morph"] = nil
+      package.loaded["explain-it.context-builder"] = nil
+      package.loaded["explain-it.context-builder.components.status_bar"] = nil
+      package.loaded["explain-it.context-builder.components.context_editor"] = nil
       vim.bo = nil
       vim.o = nil
     end)

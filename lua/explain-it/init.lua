@@ -20,7 +20,7 @@ function ExplainIt.explain_it(opts)
     opts = {}
   end
 
-  opts.api_type = opts.api_type or "completion"
+  opts.api_type = opts.api_type or "chat"
   opts.is_visual = opts.is_visual or false
   opts.custom_prompt = opts.custom_prompt or false
   opts.output_to_buffer = opts and opts.output_to_buffer or false
