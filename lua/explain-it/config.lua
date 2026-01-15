@@ -67,6 +67,53 @@ M.options = {
       "refactoring",
       "debugging",
     },
+
+    -- Directory add settings
+    directory = {
+      -- Directories to skip
+      ignore_dirs = {
+        ".git",
+        "node_modules",
+        ".svn",
+        ".hg",
+        "__pycache__",
+        ".cache",
+        "vendor",
+        "dist",
+        "build",
+      },
+      -- File patterns to ignore (Lua patterns)
+      ignore_patterns = {
+        "%.git/",
+        "%.DS_Store$",
+        "%.o$",
+        "%.so$",
+        "%.a$",
+        "%.dylib$",
+        "%.exe$",
+        "%.dll$",
+        "%.class$",
+        "%.pyc$",
+        "%.pyo$",
+        "%.jpg$",
+        "%.jpeg$",
+        "%.png$",
+        "%.gif$",
+        "%.ico$",
+        "%.pdf$",
+        "%.zip$",
+        "%.tar$",
+        "%.gz$",
+      },
+      -- Whether to include hidden files (starting with .)
+      include_hidden = false,
+      -- Maximum number of files to add from a single directory operation
+      max_files = 50,
+      -- Maximum file size in bytes (skip files larger than this)
+      max_file_size = 1024 * 1024, -- 1MB default
+      -- Maximum recursion depth (nil = unlimited)
+      max_depth = 10,
+    },
   },
 }
 

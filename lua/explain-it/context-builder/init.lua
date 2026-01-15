@@ -66,7 +66,10 @@ local function ContextBuilder(ctx)
   if #state.files == 0 and #state.snippets == 0 then
     table.insert(
       result,
-      h.Comment({}, 'No context added yet. Press "f" for files, "F" or "D" for other directories, "s" for snippets.')
+      h.Comment(
+        {},
+        'No context added yet. Press "f" for files, "d" for full directory, "F" or "D" for directory browsers, "s" for snippets.'
+      )
     )
   else
     table.insert(
@@ -78,6 +81,21 @@ local function ContextBuilder(ctx)
           state.files = files
           state.snippets = snippets
           ctx:update(state)
+        end,
+        on_edit_comment = function(item, item_type)
+          vim.schedule(function()
+            local current_comment = item.comment or ""
+            local prompt_label = item_type == "file" and vim.fn.fnamemodify(item.path, ":t") or "snippet"
+            vim.ui.input({
+              prompt = "Comment for " .. prompt_label .. ": ",
+              default = current_comment,
+            }, function(new_comment)
+              if new_comment ~= nil then -- nil means cancelled, "" is valid (removes comment)
+                item.comment = (new_comment ~= "") and new_comment or nil
+                ctx:update(state)
+              end
+            end)
+          end)
         end,
       })
     )
@@ -372,6 +390,50 @@ local function ContextBuilder(ctx)
         vim.notify("Snippet selector not implemented yet", vim.log.levels.INFO)
         return ""
       end,
+      ["d"] = function()
+        -- Add all files from a directory
+        vim.schedule(function()
+          local has_fb, fb = pcall(function() return require("telescope").extensions.file_browser end)
+
+          if has_fb and fb then
+            fb.file_browser {
+              prompt_title = "Select Directory to Add All Files",
+              path = vim.fn.expand("~"),
+              files = false, -- Only show directories
+              depth = 2,
+              grouped = true,
+              hide_parent_dir = false,
+              attach_mappings = function(prompt_bufnr, map)
+                local actions = require("telescope.actions")
+                local action_state = require("telescope.actions.state")
+
+                actions.select_default:replace(function()
+                  local entry = action_state.get_selected_entry()
+                  actions.close(prompt_bufnr)
+
+                  if entry then
+                    local dir = entry.path or entry.Path
+                    if type(dir) == "table" and dir.absolute then dir = dir:absolute() end
+                    if dir and vim.fn.isdirectory(dir) == 1 then M.add_directory(dir) end
+                  end
+                end)
+
+                return true
+              end,
+            }
+          else
+            -- Fallback to vim.ui.input
+            vim.ui.input({
+              prompt = "Directory to add: ",
+              default = vim.fn.expand("~") .. "/",
+              completion = "dir",
+            }, function(dir)
+              if dir and dir ~= "" then M.add_directory(vim.fn.expand(dir)) end
+            end)
+          end
+        end)
+        return ""
+      end,
       ["i"] = function()
         -- Focus instruction input by searching for the instruction section
         local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
@@ -443,12 +505,18 @@ local function ContextBuilder(ctx)
 f - Add files from current directory
 F - Browse files via telescope file browser
 D - Quick directory menu (common paths)
+d - Add all files from a directory (recursive)
 s - Add snippets to context
 i - Focus instruction input
 e - Export context to clipboard
 <CR> - Send to AI provider (when instruction is entered)
 q - Close Context Builder
 ? - Show this help
+
+On context items:
+c - Add/edit comment for file or snippet
+x - Remove item from context
+<Space> - Toggle expand/collapse
 
 Current provider: ]] .. (state.provider or _G.ExplainIt.config.context_builder.default_provider),
           vim.log.levels.INFO
@@ -700,6 +768,190 @@ function M.add_snippet(filepath, start_line, end_line, content)
   return true
 end
 
+--- Check if a file path matches any ignore pattern
+---@param filepath string The file path to check
+---@param config table The directory config
+---@return boolean should_skip
+local function should_skip_file(filepath, config)
+  local filename = vim.fn.fnamemodify(filepath, ":t")
+
+  -- Check hidden files
+  if not config.include_hidden and filename:match("^%.") then return true end
+
+  -- Check ignore patterns
+  for _, pattern in ipairs(config.ignore_patterns or {}) do
+    if filepath:match(pattern) or filename:match(pattern) then return true end
+  end
+
+  -- Check file size
+  local stat = vim.loop.fs_stat(filepath)
+  if stat and config.max_file_size and stat.size > config.max_file_size then return true end
+
+  return false
+end
+
+--- Check if a directory should be skipped
+---@param dirname string The directory name (not full path)
+---@param config table The directory config
+---@return boolean should_skip
+local function should_skip_dir(dirname, config)
+  -- Check hidden directories
+  if not config.include_hidden and dirname:match("^%.") then return true end
+
+  -- Check ignore list
+  for _, ignored in ipairs(config.ignore_dirs or {}) do
+    if dirname == ignored then return true end
+  end
+
+  return false
+end
+
+--- Recursively collect files from a directory
+---@param dir_path string The directory path
+---@param config table The directory config
+---@param depth number Current recursion depth
+---@param collected table Table to collect files into
+---@param stats table Statistics table
+local function collect_files_from_directory(dir_path, config, depth, collected, stats)
+  depth = depth or 0
+  collected = collected or {}
+  stats = stats or { total_found = 0, skipped_dirs = 0, skipped_files = 0, size_limited = 0 }
+
+  if config.max_depth and depth > config.max_depth then return collected, stats end
+
+  -- Check if we've hit the max files limit
+  if config.max_files and #collected >= config.max_files then return collected, stats end
+
+  -- Use vim.fs.dir for Neovim 0.8+ (with depth=1 for single level iteration)
+  local ok, iter = pcall(vim.fs.dir, dir_path, { depth = 1 })
+  if not ok then return collected, stats end
+
+  for name, type in iter do
+    -- Check if we've hit the max files limit
+    if config.max_files and #collected >= config.max_files then break end
+
+    local full_path = dir_path .. "/" .. name
+
+    if type == "directory" then
+      if should_skip_dir(name, config) then
+        stats.skipped_dirs = stats.skipped_dirs + 1
+      else
+        -- Recurse into subdirectory
+        collect_files_from_directory(full_path, config, depth + 1, collected, stats)
+      end
+    elseif type == "file" then
+      if should_skip_file(full_path, config) then
+        stats.skipped_files = stats.skipped_files + 1
+        -- Check if it was size-limited specifically
+        local stat = vim.loop.fs_stat(full_path)
+        if stat and config.max_file_size and stat.size > config.max_file_size then
+          stats.size_limited = stats.size_limited + 1
+        end
+      else
+        table.insert(collected, full_path)
+        stats.total_found = stats.total_found + 1
+      end
+    end
+  end
+
+  return collected, stats
+end
+
+--- Add all files from a directory to the active Context Builder
+---@param dir_path string Path to the directory
+---@return boolean success
+function M.add_directory(dir_path)
+  local instance = M.get_active_instance()
+  if not instance then
+    vim.notify("No active Context Builder found. Open one with <leader>bn", vim.log.levels.WARN)
+    return false
+  end
+
+  -- Validate and normalize directory path
+  dir_path = vim.fn.expand(dir_path)
+  dir_path = vim.fn.fnamemodify(dir_path, ":p")
+  -- Remove trailing slash
+  dir_path = dir_path:gsub("/$", "")
+
+  if vim.fn.isdirectory(dir_path) ~= 1 then
+    vim.notify("Not a valid directory: " .. dir_path, vim.log.levels.ERROR)
+    return false
+  end
+
+  -- Get configuration
+  local config = _G.ExplainIt.config.context_builder.directory
+    or {
+      ignore_dirs = { ".git", "node_modules" },
+      ignore_patterns = {},
+      include_hidden = false,
+      max_files = 50,
+      max_file_size = 1024 * 1024,
+      max_depth = 10,
+    }
+
+  -- Collect files
+  vim.notify("Scanning directory: " .. vim.fn.fnamemodify(dir_path, ":~") .. "...", vim.log.levels.INFO)
+  local files, stats = collect_files_from_directory(dir_path, config, 0, {}, {
+    total_found = 0,
+    skipped_dirs = 0,
+    skipped_files = 0,
+    size_limited = 0,
+  })
+
+  if #files == 0 then
+    vim.notify("No eligible files found in directory", vim.log.levels.WARN)
+    return false
+  end
+
+  -- Check for max_files truncation
+  local truncated = config.max_files and #files >= config.max_files
+
+  -- Add files to context
+  local added_count = 0
+  local ctx = instance.context
+  local state = ctx.state
+
+  for _, filepath in ipairs(files) do
+    -- Check if already added
+    local already_exists = false
+    for _, f in ipairs(state.files) do
+      if f.path == filepath then
+        already_exists = true
+        break
+      end
+    end
+
+    if not already_exists then
+      -- Read file content
+      local file = io.open(filepath, "r")
+      if file then
+        local content = file:read("*all")
+        file:close()
+
+        if content and content ~= "" then
+          table.insert(state.files, {
+            path = filepath,
+            content = content,
+          })
+          added_count = added_count + 1
+        end
+      end
+    end
+  end
+
+  -- Update the component
+  ctx:update(state)
+
+  -- Build summary message
+  local msg = string.format("Added %d files from %s", added_count, vim.fn.fnamemodify(dir_path, ":~"))
+  if truncated then msg = msg .. string.format(" (limited to %d files)", config.max_files) end
+  if stats.skipped_files > 0 then msg = msg .. string.format(", skipped %d files", stats.skipped_files) end
+  if stats.size_limited > 0 then msg = msg .. string.format(" (%d too large)", stats.size_limited) end
+
+  vim.notify(msg, vim.log.levels.INFO)
+  return true
+end
+
 --- Export the current context to clipboard
 ---@return boolean success
 function M.export_to_clipboard()
@@ -734,6 +986,10 @@ function M.export_to_clipboard()
 
     for i, file in ipairs(state.files) do
       table.insert(lines, "### " .. file.path)
+      if file.comment and file.comment ~= "" then
+        table.insert(lines, "")
+        table.insert(lines, "> " .. file.comment)
+      end
       table.insert(lines, "")
       table.insert(lines, "```" .. vim.fn.fnamemodify(file.path, ":e")) -- file extension for syntax highlighting
       table.insert(lines, file.content)
@@ -752,6 +1008,10 @@ function M.export_to_clipboard()
 
     for i, snippet in ipairs(state.snippets) do
       table.insert(lines, "### From " .. snippet.path .. ":" .. snippet.start_line .. "-" .. snippet.end_line)
+      if snippet.comment and snippet.comment ~= "" then
+        table.insert(lines, "")
+        table.insert(lines, "> " .. snippet.comment)
+      end
       table.insert(lines, "")
       table.insert(lines, "```" .. vim.fn.fnamemodify(snippet.path, ":e"))
       table.insert(lines, snippet.content)
@@ -853,6 +1113,7 @@ function M.build_context_string(state)
 
     for _, file in ipairs(state.files) do
       table.insert(lines, "File: " .. file.path)
+      if file.comment and file.comment ~= "" then table.insert(lines, "Note: " .. file.comment) end
       table.insert(lines, "```" .. vim.fn.fnamemodify(file.path, ":e"))
       table.insert(lines, file.content)
       if not file.content:match("\n$") then table.insert(lines, "") end
@@ -868,6 +1129,7 @@ function M.build_context_string(state)
 
     for _, snippet in ipairs(state.snippets) do
       table.insert(lines, "From " .. snippet.path .. ":" .. snippet.start_line .. "-" .. snippet.end_line)
+      if snippet.comment and snippet.comment ~= "" then table.insert(lines, "Note: " .. snippet.comment) end
       table.insert(lines, "```" .. vim.fn.fnamemodify(snippet.path, ":e"))
       table.insert(lines, snippet.content)
       if not snippet.content:match("\n$") then table.insert(lines, "") end

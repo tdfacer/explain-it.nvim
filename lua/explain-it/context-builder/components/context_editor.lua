@@ -6,20 +6,23 @@ local M = {}
 --- @class explain-it.context-builder.components.context_editor.FileItem
 --- @field path string
 --- @field content string
---- @field start_line number
---- @field end_line number
+--- @field start_line number|nil
+--- @field end_line number|nil
+--- @field comment string|nil Optional user-provided description
 
 --- @class explain-it.context-builder.components.context_editor.ContextItemProps
 --- @field item explain-it.context-builder.components.context_editor.FileItem
 --- @field type 'file' | 'snippet'
 --- @field on_remove fun(item: explain-it.context-builder.components.context_editor.FileItem)
+--- @field on_edit_comment fun(item: explain-it.context-builder.components.context_editor.FileItem)
 
 --- Context item component for displaying a file or snippet
 ---@param ctx morph.Ctx<explain-it.context-builder.components.context_editor.ContextItemProps, { expanded: boolean }>
 local function ContextItem(ctx)
   local item = ctx.props.item
-  local type = ctx.props.type
+  local item_type = ctx.props.type
   local on_remove = ctx.props.on_remove
+  local on_edit_comment = ctx.props.on_edit_comment
 
   if ctx.phase == "mount" then ctx.state = { expanded = true } end
 
@@ -41,13 +44,17 @@ local function ContextItem(ctx)
           ctx:update(state)
           return ""
         end,
+        ["c"] = function()
+          on_edit_comment(item)
+          return ""
+        end,
       },
     }, {
       state.expanded and "▼ " or "▶ ",
-      type == "file" and h.Directory({}, item.path)
+      item_type == "file" and h.Directory({}, item.path)
         or h.String({}, item.path .. ":" .. item.start_line .. "-" .. item.end_line),
       " ",
-      h.Comment({}, "[x to remove, space to toggle]"),
+      h.Comment({}, "[x: remove, space: toggle, c: comment]"),
     })
   )
 
@@ -56,8 +63,15 @@ local function ContextItem(ctx)
   if state.expanded then
     table.insert(content, "\n")
 
+    -- Show comment if present
+    if item.comment and item.comment ~= "" then
+      table.insert(content, h.DiagnosticInfo({}, "Note: "))
+      table.insert(content, h("text", { hl = "Comment" }, item.comment))
+      table.insert(content, "\n")
+    end
+
     -- Show preview of content
-    if type == "file" then
+    if item_type == "file" then
       -- Show first few lines of file
       local preview = item.content:match("^(.-\n.-\n.-\n.-\n.-\n)") or item.content
       local is_truncated = #preview < #item.content
@@ -79,6 +93,7 @@ end
 --- @field files? table[]
 --- @field snippets? table[]
 --- @field on_update? fun(files: table[], snippets: table[])
+--- @field on_edit_comment? fun(item: table, item_type: 'file'|'snippet')
 
 --- Main context editor component
 ---@param ctx morph.Ctx<explain-it.context-builder.components.context_editor.ContextEditorProps, any>
@@ -86,6 +101,7 @@ function M.ContextEditor(ctx)
   local files = ctx.props.files or {}
   local snippets = ctx.props.snippets or {}
   local on_update = ctx.props.on_update
+  local on_edit_comment = ctx.props.on_edit_comment
 
   local result = {}
 
@@ -106,6 +122,15 @@ function M.ContextEditor(ctx)
     on_update(files, new_snippets)
   end
 
+  -- Helper to trigger comment edit
+  local function edit_file_comment(file)
+    if on_edit_comment then on_edit_comment(file, "file") end
+  end
+
+  local function edit_snippet_comment(snippet)
+    if on_edit_comment then on_edit_comment(snippet, "snippet") end
+  end
+
   -- Show files
   if #files > 0 then
     table.insert(result, h.Title({}, "### Files (" .. #files .. ")"))
@@ -119,6 +144,7 @@ function M.ContextEditor(ctx)
           item = file,
           type = "file",
           on_remove = remove_file,
+          on_edit_comment = edit_file_comment,
         })
       )
       table.insert(result, "\n")
@@ -140,6 +166,7 @@ function M.ContextEditor(ctx)
           item = snippet,
           type = "snippet",
           on_remove = remove_snippet,
+          on_edit_comment = edit_snippet_comment,
         })
       )
       table.insert(result, "\n")
