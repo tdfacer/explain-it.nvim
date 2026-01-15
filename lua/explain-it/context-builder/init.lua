@@ -173,7 +173,7 @@ local function ContextBuilder(ctx)
         end)
         return ''
       end,
-      ['D'] = function()
+      ['F'] = function()
         -- Add file using telescope-file-browser for directory navigation
         -- Note: Parent directory navigation may not work in all cases
         vim.schedule(function()
@@ -222,7 +222,7 @@ local function ContextBuilder(ctx)
           if has_fb and fb then
             local fb_actions = require("telescope._extensions.file_browser.actions")
             fb.file_browser({
-              prompt_title = "Select Directory (Enter to select, navigate into folders)",
+              prompt_title = "Select Directory (Enter to select, 't' to nav into it for more browsing)",
               path = vim.fn.expand("~"),
               cwd = "~",
               cwd_to_path = false,
@@ -276,7 +276,7 @@ local function ContextBuilder(ctx)
         end)
         return ''
       end,
-      ['F'] = function()
+      ['D'] = function()
         -- Add file from a different directory
         vim.schedule(function()
           -- Helper to open find_files in a directory
