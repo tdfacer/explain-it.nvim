@@ -38,10 +38,26 @@ local chat_command = [[
     }'
 ]]
 
+---@alias anthropic_command string
+local anthropic_command = [[
+  curl https://api.anthropic.com/v1/messages \
+    2>/dev/null \
+    -H "Content-Type: application/json" \
+    -H "x-api-key: ##API_KEY##" \
+    -H "anthropic-version: 2023-06-01" \
+    -d '{
+      "model": "##MODEL##",
+      "messages": [{"role": "user", "content": "##OPTIONAL_QUESTION##\n##ESCAPED_INPUT##"}],
+      "max_tokens": 2000,
+      "temperature": 0.2
+    }'
+]]
+
 ---@enum commands
 local COMMANDS = {
   completion = completion_command,
   chat = chat_command,
+  anthropic = anthropic_command,
 }
 
 --- Formats a response string to extract the chat-gpt response (or error) from the API response. Includes logic to be API agnostic for either the completion or the chat API
@@ -57,14 +73,29 @@ M.parse_response = function(response_json, split)
     end
   end
 
-  local choice = response_json.choices[1]
-
-  if choice ~= nil then
-    local text = choice.text or choice.message.content
-    if not split or split == "" then
-      return text
+  -- Anthropic Messages API responses return a `content` array of blocks
+  -- rather than the OpenAI `choices` array.
+  if response_json.content ~= nil then
+    local block = response_json.content[1]
+    if block ~= nil and block.text ~= nil then
+      if not split or split == "" then
+        return block.text
+      end
+      return string_util.format_string_with_line_breaks(block.text)
     end
-    return string_util.format_string_with_line_breaks(text)
+    return vim.inspect(response_json)
+  end
+
+  if response_json.choices ~= nil then
+    local choice = response_json.choices[1]
+
+    if choice ~= nil then
+      local text = choice.text or choice.message.content
+      if not split or split == "" then
+        return text
+      end
+      return string_util.format_string_with_line_breaks(text)
+    end
   end
 
   return vim.inspect(response_json)
@@ -96,16 +127,29 @@ end
 ---@param command_type commands
 ---@return string
 M.get_formatted_command = function(escaped_input, question, command_type)
+  local config = _G.ExplainIt.config
+  local provider = config.provider or "openai"
   local command_str = ""
-  if command_type == "chat_command" then
-    command_str = COMMANDS.chat:gsub("##MODEL##", _G.ExplainIt.config.openai_chat_model)
+  local api_key_env = ""
+
+  if provider == "anthropic" then
+    -- Anthropic has a single Messages API, so the completion/chat distinction
+    -- does not apply.
+    command_str = COMMANDS.anthropic:gsub("##MODEL##", config.anthropic_chat_model)
+    api_key_env = config.anthropic_api_key_env or "ANTHROPIC_API_KEY"
   else
-    command_str = COMMANDS.completion:gsub("##MODEL##", _G.ExplainIt.config.openai_completion_model)
+    api_key_env = config.openai_api_key_env or "CHAT_GPT_API_KEY"
+    if command_type == "chat_command" then
+      command_str = COMMANDS.chat:gsub("##MODEL##", config.openai_chat_model)
+    else
+      command_str = COMMANDS.completion:gsub("##MODEL##", config.openai_completion_model)
+    end
   end
-  local api_key = os.getenv "CHAT_GPT_API_KEY"
+
+  local api_key = os.getenv(api_key_env)
   if not api_key or api_key == "" then
-    D.log("chat-gpt.get_formatted_command", "Failed to get CHAT_GPT_API_KEY")
-    error "Failed to get API key. Is CHAT_GPT_API_KEY env var set?"
+    D.log("chat-gpt.get_formatted_command", "Failed to get " .. api_key_env)
+    error("Failed to get API key. Is " .. api_key_env .. " env var set?")
   end
   local populated_token = string.gsub(command_str, "##API_KEY##", api_key)
 
