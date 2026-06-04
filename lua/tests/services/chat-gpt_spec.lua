@@ -33,6 +33,7 @@ describe("chat-gpt", function()
     require("explain-it").setup {
       token_limit = 2000,
       output_directory = ".",
+      provider = "openai",
       openai_chat_model = "FAKE_MODEL",
       default_prompts = {
         ["markdown"] = "Answer this question in the markdown file:",
@@ -52,6 +53,19 @@ describe("chat-gpt", function()
     }
     local formatted_response = chat_gpt.parse_response(response_json, true)
     assert.are.equal(formatted_response, "This is a response")
+  end)
+
+  it("should format anthropic response correctly", function()
+    local response_json = {
+      content = {
+        {
+          type = "text",
+          text = "This is an Anthropic response",
+        },
+      },
+    }
+    local formatted_response = chat_gpt.parse_response(response_json, true)
+    assert.are.equal(formatted_response, "This is an Anthropic response")
   end)
 
   it("should get filetype correctly", function()
@@ -133,6 +147,39 @@ describe("chat-gpt", function()
       formatted_prompt,
       '  curl https://api.openai.com/v1/completions \\\n    2>/dev/null \\\n    -H "Content-Type: application/json" \\\n    -H "Authorization: Bearer FAKE KEY" \\\n    -d \'{\n      "model": "text-davinci-003",\n      "prompt": "What does this code do?\\nThis is an escaped prompt",\n      "max_tokens": 2000,\n      "temperature": 0\n    }\'\n'
     )
+    mock.revert(mock_os)
+  end)
+
+  it("should get formatted prompt correctly - anthropic provider", function()
+    require("explain-it").setup {
+      provider = "anthropic",
+      anthropic_chat_model = "claude-opus-4-8",
+    }
+    local mock_os = mock(os, true)
+    mock_os.getenv.returns "FAKE ANTHROPIC KEY"
+    local escaped_prompt = "This is an escaped prompt"
+    local question = "What does this code do?"
+    ---@type chat_command
+    local command_type = "chat_command"
+
+    local formatted_prompt = chat_gpt.get_formatted_command(escaped_prompt, question, command_type)
+    assert.are.equal(
+      formatted_prompt,
+      '  curl https://api.anthropic.com/v1/messages \\\n    2>/dev/null \\\n    -H "Content-Type: application/json" \\\n    -H "x-api-key: FAKE ANTHROPIC KEY" \\\n    -H "anthropic-version: 2023-06-01" \\\n    -d \'{\n      "model": "claude-opus-4-8",\n      "messages": [{"role": "user", "content": "What does this code do?\\nThis is an escaped prompt"}],\n      "max_tokens": 2000,\n      "temperature": 0.2\n    }\'\n'
+    )
+    mock.revert(mock_os)
+  end)
+
+  it("should error with anthropic env var name when key missing", function()
+    require("explain-it").setup {
+      provider = "anthropic",
+      anthropic_chat_model = "claude-opus-4-8",
+    }
+    local mock_os = mock(os, true)
+    mock_os.getenv.returns ""
+    assert.has_error(function()
+      chat_gpt.get_formatted_command("input", "question", "chat_command")
+    end, "Failed to get API key. Is ANTHROPIC_API_KEY env var set?")
     mock.revert(mock_os)
   end)
 

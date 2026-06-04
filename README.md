@@ -186,6 +186,41 @@
 * Sensible default config values have been set. Customize values using the the standard `setup` function.
 * See `M.options` [here]([url](https://github.com/tdfacer/explain-it.nvim/blob/main/lua/explain-it/config.lua#L5)) for a full list of options.
 
+### 🤖 Choosing a provider (OpenAI or Anthropic)
+
+`explain-it` can talk to either the OpenAI API (default) or the Anthropic
+(Claude) Messages API. Switch providers with the `provider` option.
+
+Recent Anthropic models that are supported:
+
+| Model            | ID                  |
+| ---------------- | ------------------- |
+| Claude Opus 4.8  | `claude-opus-4-8`   |
+| Claude Opus 4.7  | `claude-opus-4-7`   |
+| Claude Sonnet 4.6| `claude-sonnet-4-6` |
+| Claude Opus 4.6  | `claude-opus-4-6`   |
+| Claude Haiku 4.5 | `claude-haiku-4-5`  |
+
+To use Anthropic, set your API key (defaults to the `ANTHROPIC_API_KEY` env
+var) and configure the plugin:
+
+```lua
+require("explain-it").setup {
+  provider = "anthropic",
+  -- Any of the supported model IDs above
+  anthropic_chat_model = "claude-opus-4-8",
+  -- Optional: override which env var holds the key
+  anthropic_api_key_env = "ANTHROPIC_API_KEY",
+}
+```
+
+```sh
+echo 'export ANTHROPIC_API_KEY=<replace_with_your_key>' >> ~/.zshrc
+```
+
+When `provider = "anthropic"`, both the chat and completion keybindings route
+through the Anthropic Messages API using `anthropic_chat_model`.
+
 ## ⌨ Contributing
 
 PRs and issues are always welcome. Make sure to provide as much context as possible when opening one.  See [CONTRIBUTING.md](./CONTRIBUTING.md).
