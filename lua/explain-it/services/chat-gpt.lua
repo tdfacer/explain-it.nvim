@@ -1,7 +1,7 @@
-local system = require "explain-it.system"
-local string_util = require "explain-it.util.strings"
+local string_util = require("explain-it.util.strings")
+local system = require("explain-it.system")
 
-local D = require "explain-it.util.debug"
+local D = require("explain-it.util.debug")
 
 local M = {}
 
@@ -12,7 +12,7 @@ local M = {}
 
 ---@alias completion_command string
 local completion_command = [[
-  curl https://api.openai.com/v1/completions \
+  curl ##BASE_API##/completions \
     2>/dev/null \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer ##API_KEY##" \
@@ -26,14 +26,14 @@ local completion_command = [[
 
 ---@alias chat_command string
 local chat_command = [[
-  curl https://api.openai.com/v1/chat/completions \
+  curl ##BASE_API##/chat/completions \
     2>/dev/null \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer ##API_KEY##" \
     -d '{
       "model": "##MODEL##",
       "messages": [{"role": "user", "content": "##OPTIONAL_QUESTION##\n##ESCAPED_INPUT##"}],
-      "max_tokens": 2000,
+      "max_completion_tokens": 20000,
       "temperature": 0.2
     }'
 ]]
@@ -53,7 +53,7 @@ M.parse_response = function(response_json, split)
     if response_json.error ~= nil then
       return response_json.error.message
     else
-      error "Failed to get JSON response."
+      error("Failed to get JSON response.")
     end
   end
 
@@ -61,9 +61,7 @@ M.parse_response = function(response_json, split)
 
   if choice ~= nil then
     local text = choice.text or choice.message.content
-    if not split or split == "" then
-      return text
-    end
+    if not split or split == "" then return text end
     return string_util.format_string_with_line_breaks(text)
   end
 
@@ -72,9 +70,7 @@ end
 
 --- Uses vim api to get filetype of current buffer
 ---@return string
-M.get_filetype = function()
-  return vim.bo.filetype
-end
+M.get_filetype = function() return vim.bo.filetype end
 
 --- Returns default question based on filetype of buffer
 ---@param question string|nil
@@ -83,9 +79,7 @@ M.get_question = function(question)
   if question == nil or question == "" then
     local ft = M.get_filetype()
     question = _G.ExplainIt.config.default_prompts[ft]
-    if not question then
-      question = "Answer this question:"
-    end
+    if not question then question = "Answer this question:" end
   end
   return question
 end
@@ -97,22 +91,30 @@ end
 ---@return string
 M.get_formatted_command = function(escaped_input, question, command_type)
   local command_str = ""
+  local model = ""
+  local base_api = _G.ExplainIt.config.model_base_api or "https://api.openai.com/v1"
+  -- Remove trailing slash if present for consistent URL building
+  base_api = base_api:gsub("/$", "")
+
   if command_type == "chat_command" then
-    command_str = COMMANDS.chat:gsub("##MODEL##", _G.ExplainIt.config.openai_chat_model)
+    model = _G.ExplainIt.config.openai_chat_model
+    command_str = COMMANDS.chat:gsub("##MODEL##", model)
   else
-    command_str = COMMANDS.completion:gsub("##MODEL##", _G.ExplainIt.config.openai_completion_model)
+    model = _G.ExplainIt.config.openai_completion_model
+    command_str = COMMANDS.completion:gsub("##MODEL##", model)
   end
-  local api_key = os.getenv "CHAT_GPT_API_KEY"
+  command_str = command_str:gsub("##BASE_API##", base_api)
+  D.log_always("chat-gpt", "Using model: %s (api: %s, base: %s)", model, command_type, base_api)
+  local api_key = os.getenv("CHAT_GPT_API_KEY")
   if not api_key or api_key == "" then
     D.log("chat-gpt.get_formatted_command", "Failed to get CHAT_GPT_API_KEY")
-    error "Failed to get API key. Is CHAT_GPT_API_KEY env var set?"
+    error("Failed to get API key. Is CHAT_GPT_API_KEY env var set?")
   end
   local populated_token = string.gsub(command_str, "##API_KEY##", api_key)
 
   local populated_question = string.gsub(populated_token, "##OPTIONAL_QUESTION##", question)
   local populated_prompt = string.gsub(populated_question, "##ESCAPED_INPUT##", escaped_input)
-  local with_tokens =
-    string.gsub(populated_question, "##TOKEN_LIMIT##", _G.ExplainIt.config.token_limit)
+  local with_tokens = string.gsub(populated_question, "##TOKEN_LIMIT##", _G.ExplainIt.config.token_limit)
 
   D.log("chat-gpt.get_formatted_command", "prompt: %s", with_tokens)
   return populated_prompt
@@ -124,11 +126,7 @@ end
 ---@param prompt_type any
 ---@return AIResponse
 M.call_gpt = function(escaped_input, optional_question, prompt_type)
-  D.log(
-    "chat-gpt.call_chat_gpt",
-    "Making API call to /v1/completions API with prompt: %s",
-    escaped_input
-  )
+  D.log("chat-gpt.call_chat_gpt", "Making API call to /v1/completions API with prompt: %s", escaped_input)
   local question = M.get_question(optional_question)
   local formatted_prompt = M.get_formatted_command(escaped_input, question, prompt_type)
   D.log("chat-gpt.call_chat_gpt", "prompt: %s", formatted_prompt)
@@ -150,16 +148,53 @@ M.write_ai_response_to_file = function(ai_response)
   local temp_file = system.make_temp_file() or "/tmp/explain_it_output.txt"
   local fh = io.open(string.gsub(temp_file, "\n", ""), "w+")
   if fh ~= nil then
-    fh:write "## Question:\n"
+    fh:write("## Question:\n")
     fh:write(string.format("%s\n\n", ai_response.question))
-    fh:write "## Input:\n"
+    fh:write("## Input:\n")
     fh:write(string.format("%s\n\n", ai_response.input))
-    fh:write "## Response:\n"
+    fh:write("## Response:\n")
     fh:write(string.format("%s", ai_response.response))
     fh:close()
   end
   print("Response written to: " .. temp_file)
   return temp_file
+end
+
+--- Async version of call_gpt using callbacks
+---@param escaped_input any
+---@param optional_question any
+---@param prompt_type any
+---@param on_success fun(response: AIResponse) callback with result
+---@param on_error fun(error: string) callback with error
+M.call_gpt_async = function(escaped_input, optional_question, prompt_type, on_success, on_error)
+  D.log("chat-gpt.call_gpt_async", "Making async API call to /v1/chat/completions API with prompt: %s", escaped_input)
+
+  local question = M.get_question(optional_question)
+  local formatted_prompt = M.get_formatted_command(escaped_input, question, prompt_type)
+  D.log("chat-gpt.call_gpt_async", "prompt: %s", formatted_prompt)
+
+  -- Make async call
+  system.make_async_system_call(formatted_prompt, function(response)
+    -- Success callback
+    vim.schedule(function()
+      local success, result = pcall(vim.fn.json_decode, response)
+      if success and result then
+        local ai_response = {
+          question = question,
+          input = escaped_input,
+          response = M.parse_response(result, false),
+        }
+        D.log("chat-gpt.call_gpt_async", "ai_response: %s", vim.inspect(ai_response))
+        M.write_ai_response_to_file(ai_response)
+        on_success(ai_response)
+      else
+        on_error("Failed to parse API response: " .. (response or "empty response"))
+      end
+    end)
+  end, function(error)
+    -- Error callback
+    vim.schedule(function() on_error("API call failed: " .. error) end)
+  end)
 end
 
 return M

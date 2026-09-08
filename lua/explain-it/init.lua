@@ -1,26 +1,22 @@
-local buff = require "explain-it.util.buffer"
-local response_handler = require "explain-it.handlers.response"
-local escape = require "explain-it.util.escape"
-local chat_gpt = require "explain-it.services.chat-gpt"
-local D = require "explain-it.util.debug"
+local D = require("explain-it.util.debug")
+local buff = require("explain-it.util.buffer")
+local chat_gpt = require("explain-it.services.chat-gpt")
+local escape = require("explain-it.util.escape")
+local response_handler = require("explain-it.handlers.response")
 local ExplainIt = {}
 
 --- Sets up plugin with user-provided options
 ---@param opts any
-function ExplainIt.setup(opts)
-  _G.ExplainIt.config = require("explain-it.config").setup(opts)
-end
+function ExplainIt.setup(opts) _G.ExplainIt.config = require("explain-it.config").setup(opts) end
 
 --- Core function for preparing requests to external services. Based on input,
 --- will either pull the contents of the full buffer into a variable or just the
 --- visually selected text, then call call_chat_gpt with it.
 ---@param opts any
 function ExplainIt.explain_it(opts)
-  if not opts then
-    opts = {}
-  end
+  if not opts then opts = {} end
 
-  opts.api_type = opts.api_type or "completion"
+  opts.api_type = opts.api_type or "chat"
   opts.is_visual = opts.is_visual or false
   opts.custom_prompt = opts.custom_prompt or false
   opts.output_to_buffer = opts and opts.output_to_buffer or false
@@ -59,9 +55,94 @@ function ExplainIt.call_chat_gpt(opts)
     ai_response = chat_gpt.call_gpt(opts.text, custom_prompt, "chat_command")
   end
   response_handler.notify_response(ai_response)
-  if opts.output_to_buffer then
-    response_handler.append_buffer_response(ai_response)
+  if opts.output_to_buffer then response_handler.append_buffer_response(ai_response) end
+end
+
+--- Opens the interactive AI Context Builder interface
+---@param opts table|nil Optional configuration for the context builder
+function ExplainIt.open_context_builder(opts)
+  if not _G.ExplainIt.config.context_builder.enabled then
+    vim.notify("Context Builder is not enabled. Set context_builder.enabled = true in setup()", vim.log.levels.WARN)
+    return
   end
+
+  local ContextBuilder = require("explain-it.context-builder")
+  ContextBuilder.open(opts)
+end
+
+--- Add current file to the active Context Builder
+function ExplainIt.add_current_file_to_context()
+  local filepath = vim.fn.expand("%:p")
+  if filepath == "" then
+    vim.notify("No file open in current buffer", vim.log.levels.WARN)
+    return
+  end
+
+  -- Make sure we have a real file
+  if not vim.fn.filereadable(filepath) then
+    vim.notify("Current buffer is not a saved file: " .. filepath, vim.log.levels.WARN)
+    return
+  end
+
+  local ContextBuilder = require("explain-it.context-builder")
+  ContextBuilder.add_file(filepath)
+end
+
+--- Add visual selection to the active Context Builder
+function ExplainIt.add_selection_to_context()
+  local buf = require("explain-it.util.buffer")
+  local selection = buf.get_visual_selection()
+
+  if not selection or selection == "" then
+    vim.notify("No selection found", vim.log.levels.WARN)
+    return
+  end
+
+  local filepath = vim.fn.expand("%:p")
+  local start_pos = vim.fn.getpos("'<")
+  local end_pos = vim.fn.getpos("'>")
+
+  local ContextBuilder = require("explain-it.context-builder")
+  ContextBuilder.add_snippet(filepath, start_pos[2], end_pos[2], selection)
+end
+
+--- Export the active Context Builder's context to clipboard
+function ExplainIt.export_context_to_clipboard()
+  local ContextBuilder = require("explain-it.context-builder")
+  return ContextBuilder.export_to_clipboard()
+end
+
+--- Focus the instruction input in the active Context Builder
+function ExplainIt.focus_instruction_input()
+  local ContextBuilder = require("explain-it.context-builder")
+  local instance = ContextBuilder.get_active_instance()
+
+  if not instance then
+    vim.notify("No active Context Builder found. Open one with :ExplainItContext", vim.log.levels.WARN)
+    return
+  end
+
+  -- Get the renderer and simulate pressing 'i'
+  local renderer = instance.renderer
+  if renderer then
+    -- Simulate the 'i' keypress to focus instruction
+    vim.api.nvim_feedkeys("i", "n", false)
+  end
+end
+
+--- Switch the AI provider for the active Context Builder
+---@param provider_name string Name of the provider to switch to
+---@return boolean success
+function ExplainIt.switch_provider(provider_name)
+  local ContextBuilder = require("explain-it.context-builder")
+  return ContextBuilder.switch_provider(provider_name)
+end
+
+--- Get list of configured AI providers
+---@return table List of provider names
+function ExplainIt.get_providers()
+  local ContextBuilder = require("explain-it.context-builder")
+  return ContextBuilder.get_providers()
 end
 
 _G.ExplainIt = ExplainIt

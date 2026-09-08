@@ -1,10 +1,9 @@
-local mock = require "luassert.mock"
-package.path = package.path
-  .. ";../../explain-it/?.lua;../../explain-it/services/?.lua;../../explain-it/util/?.lua"
+local mock = require("luassert.mock")
+package.path = package.path .. ";../../explain-it/?.lua;../../explain-it/services/?.lua;../../explain-it/util/?.lua"
 
 describe("chat-gpt", function()
-  local chat_gpt = require "explain-it.services.chat-gpt"
-  local system = require "explain-it.system"
+  local chat_gpt = require("explain-it.services.chat-gpt")
+  local system = require("explain-it.system")
   local file_type = vim.bo.filetype
 
   local example_response = {
@@ -34,6 +33,7 @@ describe("chat-gpt", function()
       token_limit = 2000,
       output_directory = ".",
       openai_chat_model = "FAKE_MODEL",
+      openai_completion_model = "FAKE_COMPLETION_MODEL",
       default_prompts = {
         ["markdown"] = "Answer this question in the markdown file:",
         ["custom"] = "Answer this custom question:",
@@ -63,14 +63,14 @@ describe("chat-gpt", function()
   end)
 
   it("should get default question based on filetype", function()
-    local question = chat_gpt.get_question "arbitrary question"
+    local question = chat_gpt.get_question("arbitrary question")
     assert.are.equal(question, "arbitrary question")
   end)
 
   it("should get default question based on filetype (markdown)", function()
     local vim_mock = mock(vim.bo, true)
     vim_mock.filetype = "markdown"
-    local question = chat_gpt.get_question ""
+    local question = chat_gpt.get_question("")
     assert.are.equal(question, "Answer this question in the markdown file:")
     mock.revert(vim_mock)
   end)
@@ -78,7 +78,7 @@ describe("chat-gpt", function()
   it("should get default question based on filetype (custom)", function()
     local vim_mock = mock(vim.bo, true)
     vim_mock.filetype = "custom"
-    local question = chat_gpt.get_question ""
+    local question = chat_gpt.get_question("")
     assert.are.equal(question, "Answer this custom question:")
     mock.revert(vim_mock)
   end)
@@ -86,27 +86,28 @@ describe("chat-gpt", function()
   it("should get default question based on filetype (default)", function()
     local vim_mock = mock(vim.bo, true)
     vim_mock.filetype = "lua"
-    local question = chat_gpt.get_question ""
+    local question = chat_gpt.get_question("")
     assert.are.equal(question, "What does this code do?")
     mock.revert(vim_mock)
   end)
 
   it("should get formatted prompt correctly - no api key", function()
     local mock_os = mock(os, true)
-    mock_os.getenv.returns ""
+    mock_os.getenv.returns("")
     local escaped_prompt = "This is an escaped prompt"
     local question = "What does this code do?"
     ---@type completion_command
     local command_type = "completion_command"
-    assert.has_error(function()
-      chat_gpt.get_formatted_command(escaped_prompt, question, command_type)
-    end, "Failed to get API key. Is CHAT_GPT_API_KEY env var set?")
+    assert.has_error(
+      function() chat_gpt.get_formatted_command(escaped_prompt, question, command_type) end,
+      "Failed to get API key. Is CHAT_GPT_API_KEY env var set?"
+    )
     mock.revert(mock_os)
   end)
 
   it("should get formatted prompt correctly - chat_command", function()
     local mock_os = mock(os, true)
-    mock_os.getenv.returns "FAKE KEY"
+    mock_os.getenv.returns("FAKE KEY")
     local escaped_prompt = "This is an escaped prompt"
     local question = "What does this code do?"
     ---@type chat_command
@@ -115,14 +116,14 @@ describe("chat-gpt", function()
     local formatted_prompt = chat_gpt.get_formatted_command(escaped_prompt, question, command_type)
     assert.are.equal(
       formatted_prompt,
-      '  curl https://api.openai.com/v1/chat/completions \\\n    2>/dev/null \\\n    -H "Content-Type: application/json" \\\n    -H "Authorization: Bearer FAKE KEY" \\\n    -d \'{\n      "model": "FAKE_MODEL",\n      "messages": [{"role": "user", "content": "What does this code do?\\nThis is an escaped prompt"}],\n      "max_tokens": 2000,\n      "temperature": 0.2\n    }\'\n'
+      '  curl https://api.openai.com/v1/chat/completions \\\n    2>/dev/null \\\n    -H "Content-Type: application/json" \\\n    -H "Authorization: Bearer FAKE KEY" \\\n    -d \'{\n      "model": "FAKE_MODEL",\n      "messages": [{"role": "user", "content": "What does this code do?\\nThis is an escaped prompt"}],\n      "max_completion_tokens": 20000,\n      "temperature": 0.2\n    }\'\n'
     )
     mock.revert(mock_os)
   end)
 
   it("should get formatted prompt correctly - completion_command", function()
     local mock_os = mock(os, true)
-    mock_os.getenv.returns "FAKE KEY"
+    mock_os.getenv.returns("FAKE KEY")
     local escaped_prompt = "This is an escaped prompt"
     local question = "What does this code do?"
     ---@type completion_command
@@ -131,14 +132,14 @@ describe("chat-gpt", function()
     local formatted_prompt = chat_gpt.get_formatted_command(escaped_prompt, question, command_type)
     assert.are.equal(
       formatted_prompt,
-      '  curl https://api.openai.com/v1/completions \\\n    2>/dev/null \\\n    -H "Content-Type: application/json" \\\n    -H "Authorization: Bearer FAKE KEY" \\\n    -d \'{\n      "model": "text-davinci-003",\n      "prompt": "What does this code do?\\nThis is an escaped prompt",\n      "max_tokens": 2000,\n      "temperature": 0\n    }\'\n'
+      '  curl https://api.openai.com/v1/completions \\\n    2>/dev/null \\\n    -H "Content-Type: application/json" \\\n    -H "Authorization: Bearer FAKE KEY" \\\n    -d \'{\n      "model": "FAKE_COMPLETION_MODEL",\n      "prompt": "What does this code do?\\nThis is an escaped prompt",\n      "max_tokens": 2000,\n      "temperature": 0\n    }\'\n'
     )
     mock.revert(mock_os)
   end)
 
   it("should call ChatGPT API correctly", function()
     local mock_os = mock(os, true)
-    mock_os.getenv.returns "FAKE KEYZUS"
+    mock_os.getenv.returns("FAKE KEYZUS")
 
     local mock_system = mock(system, true)
     mock_system.make_system_call_with_retry.returns(example_response)
@@ -159,10 +160,8 @@ describe("chat-gpt", function()
     }
     local temp_file = chat_gpt.write_ai_response_to_file(ai_response)
     local fh, err = io.open(temp_file, "r")
-    if err or not fh then
-      error "failed to get fh"
-    end
-    local file_content = fh:read "*all"
+    if err or not fh then error("failed to get fh") end
+    local file_content = fh:read("*all")
     fh:close()
     local expected = [[## Question:
 some question

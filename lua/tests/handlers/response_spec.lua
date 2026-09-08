@@ -1,4 +1,4 @@
-local stub = require "luassert.stub"
+local stub = require("luassert.stub")
 
 -- Clear loaded modules to ensure we can mock properly
 package.loaded["notify"] = nil
@@ -8,7 +8,7 @@ package.loaded["explain-it.handlers.response"] = nil
 local notify_stub = stub()
 package.loaded["notify"] = notify_stub
 
-local response_handler = require "explain-it.handlers.response"
+local response_handler = require("explain-it.handlers.response")
 
 describe("notify", function()
   before_each(function()
@@ -17,9 +17,7 @@ describe("notify", function()
     }
   end)
 
-  after_each(function()
-    notify_stub:clear()
-  end)
+  after_each(function() notify_stub:clear() end)
 
   it("should notify response", function()
     local ai_response = {

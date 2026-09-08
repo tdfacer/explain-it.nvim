@@ -7,26 +7,23 @@ local D = {}
 ---@param ... any: the arguments of the formatted string.
 ---@private
 function D.log(scope, str, ...)
-  if _G.ExplainIt.config ~= nil and not _G.ExplainIt.config.debug then
-    return
-  end
+  if _G.ExplainIt.config ~= nil and not _G.ExplainIt.config.debug then return end
 
   local info = debug.getinfo(2, "Sl")
   local line = ""
 
-  if info then
-    line = "L" .. info.currentline
-  end
+  if info then line = "L" .. info.currentline end
 
-  print(
-    string.format(
-      "[explain-it:%s %s in %s] > %s",
-      os.date "%H:%M:%S",
-      line,
-      scope,
-      string.format(str, ...)
-    )
-  )
+  print(string.format("[explain-it:%s %s in %s] > %s", os.date("%H:%M:%S"), line, scope, string.format(str, ...)))
+end
+
+function D.log_always(scope, str, ...)
+  local info = debug.getinfo(2, "Sl")
+  local line = ""
+
+  if info then line = "L" .. info.currentline end
+
+  print(string.format("[explain-it:%s %s in %s] > %s", os.date("%H:%M:%S"), line, scope, string.format(str, ...)))
 end
 
 --- prints the table if debug is true.
@@ -34,13 +31,9 @@ end
 ---@param indent number?: the default indent value, starts at 0.
 ---@private
 function D.tprint(table, indent)
-  if _G.ExplainIt.config ~= nil and not _G.ExplainIt.config.debug then
-    return
-  end
+  if _G.ExplainIt.config ~= nil and not _G.ExplainIt.config.debug then return end
 
-  if not indent then
-    indent = 0
-  end
+  if not indent then indent = 0 end
 
   for k, v in pairs(table) do
     local formatting = string.rep("  ", indent) .. k .. ": "
