@@ -14,6 +14,11 @@ describe("system", function()
       assert.are.equal(result, "hello world\n")
     end)
 
+    it("should pass stdin to an argv command", function()
+      local result = system.make_system_call({ "cat" }, 'it\'s "quoted" \\ %s')
+      assert.are.equal(result, 'it\'s "quoted" \\ %s')
+    end)
+
     it("should return '' if the command fails", function()
       local result = system.make_system_call("nonexistent_command")
       assert.are.equal(result, "")

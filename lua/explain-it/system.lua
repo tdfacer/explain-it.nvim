@@ -4,9 +4,20 @@ local D = require("explain-it.util.debug")
 
 --- Makes a call into the underlying operating system
 --- and reads the response
----@param command string the command to run
+---@param command string|string[] shell command string, or argv list run without a shell
+---@param stdin string|nil data written to the command's stdin (argv commands only)
 ---@return string|nil result result of the command
-M.make_system_call = function(command)
+M.make_system_call = function(command, stdin)
+  if type(command) == "table" then
+    local ok, result = pcall(function() return vim.system(command, { stdin = stdin, text = true }):wait() end)
+    if not ok then
+      D.log("system.lua", "make sys call: failed to run %s: %s", command[1], result)
+      return nil
+    end
+    if result.code ~= 0 then D.log("system.lua", "make sys call: exit %s: %s", result.code, result.stderr) end
+    return result.stdout
+  end
+
   local handle, err = io.popen(command)
   if err and err ~= nil then D.log("system.lua", "make sys call: err") end
   if handle == nil then
@@ -21,14 +32,15 @@ M.make_system_call = function(command)
 end
 
 --- Wrapper around make_system_call that will retry failed requests
----@param command string
+---@param command string|string[]
+---@param stdin string|nil
 ---@return table|lsp.ResponseError
-M.make_system_call_with_retry = function(command)
+M.make_system_call_with_retry = function(command, stdin)
   local response = nil
   local max_retries = _G.ExplainIt.config.max_retries
   local retry_count = 0
   while retry_count < max_retries do
-    response = M.make_system_call(command)
+    response = M.make_system_call(command, stdin)
     if response then
       local success, result = pcall(vim.fn.json_decode, response)
       if success then return result end
@@ -44,11 +56,12 @@ M.make_system_call_with_retry = function(command)
 end
 
 --- Makes an async system call using jobstart
----@param command string the command to run
+---@param command string|string[] the command to run
 ---@param on_success fun(result: string) callback with result
 ---@param on_error fun(error: string) callback with error
+---@param stdin string|nil data written to the command's stdin
 ---@return number job_id
-M.make_async_system_call = function(command, on_success, on_error)
+M.make_async_system_call = function(command, on_success, on_error, stdin)
   local stdout_chunks = {}
   local stderr_chunks = {}
 
@@ -79,7 +92,13 @@ M.make_async_system_call = function(command, on_success, on_error)
     end,
   })
 
-  if job_id <= 0 then on_error("Failed to start job: " .. command) end
+  if job_id <= 0 then
+    on_error("Failed to start job: " .. (type(command) == "table" and table.concat(command, " ") or command))
+    return job_id
+  end
+
+  if stdin then vim.fn.chansend(job_id, stdin) end
+  vim.fn.chanclose(job_id, "stdin")
 
   return job_id
 end

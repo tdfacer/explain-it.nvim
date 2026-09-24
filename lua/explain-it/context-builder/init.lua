@@ -1185,10 +1185,6 @@ function M.execute_context(instance)
     local chat_gpt = require("explain-it.services.chat-gpt")
     local response_handler = require("explain-it.handlers.response")
 
-    -- Format for OpenAI
-    local escaped = require("explain-it.util.escape").get_escaped_string(full_prompt)
-    local joined = string.gsub(escaped, "\n", "\\n")
-
     -- Handle model override if configured
     local original_model
     if provider_config.model then
@@ -1197,7 +1193,7 @@ function M.execute_context(instance)
     end
 
     -- Call OpenAI asynchronously
-    chat_gpt.call_gpt_async(joined, nil, "chat_command", function(ai_response)
+    chat_gpt.call_gpt_async(full_prompt, nil, "chat_command", function(ai_response)
       -- Success callback
       -- Restore original model if we overrode it
       if original_model then _G.ExplainIt.config.openai_chat_model = original_model end
