@@ -76,11 +76,20 @@ Plugin default config values:
     debug = false,
     max_notification_width = 200,
     max_retries = 3,
+    -- API provider to send requests to: "openai" or "anthropic"
+    provider = "openai",
     -- Base API URL for OpenAI-compatible endpoints
     model_base_api = "https://api.openai.com/v1",
     openai_chat_model = "gpt-4.1-mini",
     -- Legacy: completions API is deprecated, prefer chat API
     openai_completion_model = "gpt-4.1-mini",
+    -- Anthropic (Claude) settings, used when provider = "anthropic". Reads the key from ANTHROPIC_API_KEY.
+    anthropic_base_api = "https://api.anthropic.com/v1",
+    anthropic_model = "claude-opus-5",
+    anthropic_max_tokens = 16000,
+    -- If Claude's safety classifiers decline a request, re-run it on Anthropic's recommended
+    -- fallback model. Set to false to disable.
+    anthropic_fallbacks = "default",
     output_directory = "/tmp/explain_it_output",
     split_responses = true,
     token_limit = 2000,
