@@ -181,6 +181,23 @@
     ```
 1. Install the Plugin using your favorite package manager as described above
 
+### Using Claude (Anthropic) instead of OpenAI
+
+1. Create an API key at https://console.anthropic.com and export it:
+    ```
+    echo 'export ANTHROPIC_API_KEY=<replace_with_your_key>' >> ~/.zshrc
+    ```
+1. Select the provider in `setup`:
+    ```lua
+    require("explain-it").setup {
+      provider = "anthropic",
+      -- Optional, defaults to "claude-opus-5". Any Claude model ID works, e.g. "claude-sonnet-5" or "claude-haiku-4-5".
+      anthropic_model = "claude-opus-5",
+    }
+    ```
+
+If Claude's safety classifiers decline a request, it's re-run on Anthropic's recommended fallback model. Set `anthropic_fallbacks = false` to turn this off.
+
 ## ⚙ Configuration
 
 * Sensible default config values have been set. Customize values using the the standard `setup` function.

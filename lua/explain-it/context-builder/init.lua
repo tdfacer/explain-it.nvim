@@ -1185,18 +1185,20 @@ function M.execute_context(instance)
     local chat_gpt = require("explain-it.services.chat-gpt")
     local response_handler = require("explain-it.handlers.response")
 
-    -- Handle model override if configured
+    -- Handle model override if configured. The built-in provider sends requests to whichever API
+    -- the top-level `provider` option selects, so override that API's model.
+    local model_key = _G.ExplainIt.config.provider == "anthropic" and "anthropic_model" or "openai_chat_model"
     local original_model
     if provider_config.model then
-      original_model = _G.ExplainIt.config.openai_chat_model
-      _G.ExplainIt.config.openai_chat_model = provider_config.model
+      original_model = _G.ExplainIt.config[model_key]
+      _G.ExplainIt.config[model_key] = provider_config.model
     end
 
     -- Call OpenAI asynchronously
     chat_gpt.call_gpt_async(full_prompt, nil, "chat_command", function(ai_response)
       -- Success callback
       -- Restore original model if we overrode it
-      if original_model then _G.ExplainIt.config.openai_chat_model = original_model end
+      if original_model then _G.ExplainIt.config[model_key] = original_model end
 
       if ai_response and ai_response.response then
         -- Add to conversation
@@ -1227,7 +1229,7 @@ function M.execute_context(instance)
     end, function(error)
       -- Error callback
       -- Restore original model if we overrode it
-      if original_model then _G.ExplainIt.config.openai_chat_model = original_model end
+      if original_model then _G.ExplainIt.config[model_key] = original_model end
 
       vim.notify("OpenAI API error: " .. error, vim.log.levels.ERROR)
       state.loading = false

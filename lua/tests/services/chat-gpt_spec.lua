@@ -54,6 +54,37 @@ describe("chat-gpt", function()
     assert.are.equal(formatted_response, "This is a response")
   end)
 
+  it("should join anthropic text blocks and skip thinking blocks", function()
+    local response_json = {
+      type = "message",
+      stop_reason = "end_turn",
+      content = {
+        { type = "thinking", thinking = "" },
+        { type = "text", text = "First part. " },
+        { type = "text", text = "Second part." },
+      },
+    }
+    assert.are.equal("First part. Second part.", chat_gpt.parse_response(response_json, false))
+  end)
+
+  it("should report an anthropic refusal", function()
+    local response_json = {
+      type = "message",
+      stop_reason = "refusal",
+      stop_details = { type = "refusal", category = "cyber" },
+      content = {},
+    }
+    assert.are.equal("Claude declined this request (cyber).", chat_gpt.parse_response(response_json, false))
+  end)
+
+  it("should return the anthropic error message", function()
+    local response_json = {
+      type = "error",
+      error = { type = "invalid_request_error", message = "model: not found" },
+    }
+    assert.are.equal("model: not found", chat_gpt.parse_response(response_json, false))
+  end)
+
   it("should get filetype correctly", function()
     local vim_mock = mock(vim.bo, true)
     vim_mock.filetype = "lua"
@@ -152,6 +183,65 @@ describe("chat-gpt", function()
     local request = chat_gpt.build_request(input, "100% safe?", "chat_command")
     assert.are.equal("100% safe?\n" .. input, vim.json.decode(request.body).messages[1].content)
     mock.revert(mock_os)
+  end)
+
+  describe("anthropic provider", function()
+    before_each(function()
+      _G.ExplainIt.config.provider = "anthropic"
+      _G.ExplainIt.config.anthropic_model = "claude-opus-5"
+      _G.ExplainIt.config.anthropic_fallbacks = "default"
+    end)
+    after_each(function() _G.ExplainIt.config.provider = "openai" end)
+
+    it("should build a messages request", function()
+      local mock_os = mock(os, true)
+      mock_os.getenv.returns("FAKE ANTHROPIC KEY")
+
+      local request = chat_gpt.build_request("some input", "What does this code do?", "chat_command")
+      assert.are.same({
+        "curl",
+        "--silent",
+        "https://api.anthropic.com/v1/messages",
+        "-H",
+        "Content-Type: application/json",
+        "-H",
+        "x-api-key: FAKE ANTHROPIC KEY",
+        "-H",
+        "anthropic-version: 2023-06-01",
+        "-H",
+        "anthropic-beta: server-side-fallback-2026-07-01",
+        "--data-binary",
+        "@-",
+      }, request.cmd)
+      assert.are.same({
+        model = "claude-opus-5",
+        max_tokens = 16000,
+        messages = { { role = "user", content = "What does this code do?\nsome input" } },
+        fallbacks = "default",
+      }, vim.json.decode(request.body))
+      mock.revert(mock_os)
+    end)
+
+    it("should omit fallbacks when disabled", function()
+      _G.ExplainIt.config.anthropic_fallbacks = false
+      local mock_os = mock(os, true)
+      mock_os.getenv.returns("FAKE ANTHROPIC KEY")
+
+      local request = chat_gpt.build_request("some input", "question", "completion_command")
+      assert.is_nil(vim.json.decode(request.body).fallbacks)
+      assert.is_false(vim.tbl_contains(request.cmd, "anthropic-beta: server-side-fallback-2026-07-01"))
+      mock.revert(mock_os)
+    end)
+
+    it("should error when ANTHROPIC_API_KEY is missing", function()
+      local mock_os = mock(os, true)
+      mock_os.getenv.returns("")
+      assert.has_error(
+        function() chat_gpt.build_request("input", "question", "chat_command") end,
+        "Failed to get API key. Is ANTHROPIC_API_KEY env var set?"
+      )
+      mock.revert(mock_os)
+    end)
   end)
 
   it("should call ChatGPT API correctly", function()

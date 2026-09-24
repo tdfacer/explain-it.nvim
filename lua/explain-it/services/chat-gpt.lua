@@ -18,7 +18,8 @@ local M = {}
 ---@field cmd string[] curl argv, run directly without a shell
 ---@field body string JSON request body, passed to curl on stdin
 
---- Formats a response string to extract the chat-gpt response (or error) from the API response. Includes logic to be API agnostic for either the completion or the chat API
+--- Extracts the response text (or error) from an API response. Handles the OpenAI chat and
+--- completion APIs and the Anthropic Messages API.
 ---@param response_json table
 ---@param split boolean
 ---@return string
@@ -31,15 +32,39 @@ M.parse_response = function(response_json, split)
     end
   end
 
-  local choice = response_json.choices[1]
-
-  if choice ~= nil then
-    local text = choice.text or choice.message.content
-    if not split or split == "" then return text end
-    return string_util.format_string_with_line_breaks(text)
+  local text
+  if response_json.type == "message" then
+    text = M.get_anthropic_text(response_json)
+  elseif response_json.choices and response_json.choices[1] then
+    local choice = response_json.choices[1]
+    text = choice.text or choice.message.content
+  else
+    return vim.inspect(response_json)
   end
 
-  return vim.inspect(response_json)
+  if not split or split == "" then return text end
+  return string_util.format_string_with_line_breaks(text)
+end
+
+--- Joins the text blocks of an Anthropic Messages API response. Other block types (such as
+--- thinking) are skipped. A refusal is reported instead of any partial text.
+---@param response_json table
+---@return string
+M.get_anthropic_text = function(response_json)
+  if response_json.stop_reason == "refusal" then
+    local category = vim.tbl_get(response_json, "stop_details", "category")
+    return "Claude declined this request" .. (type(category) == "string" and (" (" .. category .. ")") or "") .. "."
+  end
+
+  local parts = {}
+  for _, block in ipairs(response_json.content or {}) do
+    if block.type == "text" then table.insert(parts, block.text) end
+  end
+  local text = table.concat(parts)
+  if response_json.stop_reason == "max_tokens" then
+    text = text .. "\n\n[Response truncated: hit anthropic_max_tokens]"
+  end
+  return text
 end
 
 --- Uses vim api to get filetype of current buffer
@@ -58,25 +83,47 @@ M.get_question = function(question)
   return question
 end
 
---- Builds the JSON-serializable request body for the chat or completion API
+--- Builds the JSON-serializable request body for the configured provider
 ---@param input string raw (unescaped) text to send
 ---@param question string
 ---@param command_type commands
 ---@return table
 M.build_request_body = function(input, question, command_type)
+  local config = _G.ExplainIt.config
   local content = question .. "\n" .. input
+  if config.provider == "anthropic" then
+    -- The Messages API covers both the chat and completion use cases.
+    return {
+      model = config.anthropic_model,
+      max_tokens = config.anthropic_max_tokens,
+      messages = { { role = "user", content = content } },
+      fallbacks = config.anthropic_fallbacks or nil,
+    }
+  end
   if command_type == "chat_command" then
     return {
-      model = _G.ExplainIt.config.openai_chat_model,
+      model = config.openai_chat_model,
       messages = { { role = "user", content = content } },
       max_completion_tokens = 20000,
     }
   end
   return {
-    model = _G.ExplainIt.config.openai_completion_model,
+    model = config.openai_completion_model,
     prompt = content,
     max_tokens = 2000,
   }
+end
+
+--- Reads an API key from the environment, erroring if it is missing
+---@param env_var string
+---@return string
+local function get_api_key(env_var)
+  local api_key = os.getenv(env_var)
+  if not api_key or api_key == "" then
+    D.log("chat-gpt.build_request", "Failed to get %s", env_var)
+    error(string.format("Failed to get API key. Is %s env var set?", env_var))
+  end
+  return api_key
 end
 
 --- Builds the curl argv and JSON body for an API call. The body is encoded with vim.json and sent on
@@ -86,34 +133,32 @@ end
 ---@param command_type commands
 ---@return ExplainItRequest
 M.build_request = function(input, question, command_type)
-  local base_api = _G.ExplainIt.config.model_base_api or "https://api.openai.com/v1"
-  -- Remove trailing slash if present for consistent URL building
-  base_api = base_api:gsub("/$", "")
-  local endpoint = command_type == "chat_command" and "/chat/completions" or "/completions"
-
-  local api_key = os.getenv("CHAT_GPT_API_KEY")
-  if not api_key or api_key == "" then
-    D.log("chat-gpt.build_request", "Failed to get CHAT_GPT_API_KEY")
-    error("Failed to get API key. Is CHAT_GPT_API_KEY env var set?")
+  local config = _G.ExplainIt.config
+  local url, headers
+  if config.provider == "anthropic" then
+    local base_api = (config.anthropic_base_api or "https://api.anthropic.com/v1"):gsub("/$", "")
+    url = base_api .. "/messages"
+    headers = {
+      "x-api-key: " .. get_api_key("ANTHROPIC_API_KEY"),
+      "anthropic-version: 2023-06-01",
+    }
+    if config.anthropic_fallbacks then table.insert(headers, "anthropic-beta: server-side-fallback-2026-07-01") end
+  else
+    local base_api = (config.model_base_api or "https://api.openai.com/v1"):gsub("/$", "")
+    url = base_api .. (command_type == "chat_command" and "/chat/completions" or "/completions")
+    headers = { "Authorization: Bearer " .. get_api_key("CHAT_GPT_API_KEY") }
   end
 
   local body = M.build_request_body(input, question, command_type)
-  D.log_always("chat-gpt", "Using model: %s (api: %s, base: %s)", body.model, command_type, base_api)
+  D.log_always("chat-gpt", "Using model: %s (api: %s, url: %s)", body.model, command_type, url)
 
-  return {
-    cmd = {
-      "curl",
-      "--silent",
-      base_api .. endpoint,
-      "-H",
-      "Content-Type: application/json",
-      "-H",
-      "Authorization: Bearer " .. api_key,
-      "--data-binary",
-      "@-",
-    },
-    body = vim.json.encode(body),
-  }
+  local cmd = { "curl", "--silent", url, "-H", "Content-Type: application/json" }
+  for _, header in ipairs(headers) do
+    vim.list_extend(cmd, { "-H", header })
+  end
+  vim.list_extend(cmd, { "--data-binary", "@-" })
+
+  return { cmd = cmd, body = vim.json.encode(body) }
 end
 
 --- Formats input in order to make an API call to ChatGPT, makes the API call, writes the prompt and response to a file, then returns the response
