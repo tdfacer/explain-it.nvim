@@ -4,7 +4,6 @@ local stub = require("luassert.stub")
 local ExplainIt = require("explain-it")
 local buff = require("explain-it.util.buffer")
 local chat_gpt = require("explain-it.services.chat-gpt")
-local escape = require("explain-it.util.escape")
 local notify = require("notify")
 local response_handler = require("explain-it.handlers.response")
 
@@ -12,7 +11,6 @@ describe("ExplainIt", function()
   before_each(function()
     stub(buff, "get_visual_selection")
     stub(buff, "get_buffer_lines")
-    stub(escape, "get_escaped_string")
     stub(ExplainIt, "call_chat_gpt")
     stub(response_handler, "notify_response")
     stub(vim.ui, "input")
@@ -20,7 +18,6 @@ describe("ExplainIt", function()
   after_each(function()
     buff.get_visual_selection:revert()
     buff.get_buffer_lines:revert()
-    escape.get_escaped_string:revert()
     ExplainIt.call_chat_gpt:revert()
     vim.ui.input:revert()
   end)
@@ -32,13 +29,12 @@ describe("ExplainIt", function()
     end)
 
     it("should call call_chat_gpt with buffer lines if is_visual is false", function()
-      buff.get_buffer_lines.returns("buffer lines")
-      escape.get_escaped_string.returns("escaped string")
+      buff.get_buffer_lines.returns { "line one", "line two" }
       ExplainIt.explain_it { is_visual = false }
       assert.stub(ExplainIt.call_chat_gpt).was_called_with {
         api_type = "chat",
         custom_prompt = false,
-        text = "escaped string",
+        text = "line one\nline two",
         is_visual = false,
         output_to_buffer = false,
       }
@@ -46,12 +42,11 @@ describe("ExplainIt", function()
 
     it("should call call_chat_gpt with visual selection if is_visual is true", function()
       buff.get_visual_selection.returns("visual selection")
-      escape.get_escaped_string.returns("escaped string")
       ExplainIt.explain_it { is_visual = true }
       assert.stub(ExplainIt.call_chat_gpt).was_called_with {
         api_type = "chat",
         custom_prompt = false,
-        text = "escaped string",
+        text = "visual selection",
         is_visual = true,
         output_to_buffer = false,
       }
@@ -60,7 +55,6 @@ describe("ExplainIt", function()
     -- WIP vim.ui wonkiness
     --   it("should call call_chat_gpt with custom prompt if custom_prompt is true", function()
     --     buff.get_buffer_lines.returns("buffer lines")
-    --     escape.get_escaped_string.returns("escaped string")
     --     vim.ui.input = function(tbl, fn)
     --       for k, _ in tbl do
     --         print("### vim.ui.input k: " .. k)

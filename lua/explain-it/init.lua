@@ -1,7 +1,6 @@
 local D = require("explain-it.util.debug")
 local buff = require("explain-it.util.buffer")
 local chat_gpt = require("explain-it.services.chat-gpt")
-local escape = require("explain-it.util.escape")
 local response_handler = require("explain-it.handlers.response")
 local ExplainIt = {}
 
@@ -27,9 +26,8 @@ function ExplainIt.explain_it(opts)
   else
     text = buff.get_buffer_lines()
   end
-  local escaped = escape.get_escaped_string(text)
-  local joined = string.gsub(escaped, "\n", "\\n")
-  opts.text = joined
+  if type(text) == "table" then text = table.concat(text, "\n") end
+  opts.text = text
   if opts.custom_prompt then
     vim.ui.input({ prompt = "Enter the custom prompt: " }, function(custom_prompt)
       D.log("init", "custom_prompt: %s", custom_prompt)

@@ -91,49 +91,66 @@ describe("chat-gpt", function()
     mock.revert(vim_mock)
   end)
 
-  it("should get formatted prompt correctly - no api key", function()
+  it("should error when there is no api key", function()
     local mock_os = mock(os, true)
     mock_os.getenv.returns("")
-    local escaped_prompt = "This is an escaped prompt"
-    local question = "What does this code do?"
-    ---@type completion_command
-    local command_type = "completion_command"
     assert.has_error(
-      function() chat_gpt.get_formatted_command(escaped_prompt, question, command_type) end,
+      function() chat_gpt.build_request("some input", "What does this code do?", "completion_command") end,
       "Failed to get API key. Is CHAT_GPT_API_KEY env var set?"
     )
     mock.revert(mock_os)
   end)
 
-  it("should get formatted prompt correctly - chat_command", function()
+  it("should build a chat request", function()
     local mock_os = mock(os, true)
     mock_os.getenv.returns("FAKE KEY")
-    local escaped_prompt = "This is an escaped prompt"
-    local question = "What does this code do?"
-    ---@type chat_command
-    local command_type = "chat_command"
 
-    local formatted_prompt = chat_gpt.get_formatted_command(escaped_prompt, question, command_type)
-    assert.are.equal(
-      formatted_prompt,
-      '  curl https://api.openai.com/v1/chat/completions \\\n    2>/dev/null \\\n    -H "Content-Type: application/json" \\\n    -H "Authorization: Bearer FAKE KEY" \\\n    -d \'{\n      "model": "FAKE_MODEL",\n      "messages": [{"role": "user", "content": "What does this code do?\\nThis is an escaped prompt"}],\n      "max_completion_tokens": 20000,\n      "temperature": 0.2\n    }\'\n'
-    )
+    local request = chat_gpt.build_request("some input", "What does this code do?", "chat_command")
+    assert.are.same({
+      "curl",
+      "--silent",
+      "https://api.openai.com/v1/chat/completions",
+      "-H",
+      "Content-Type: application/json",
+      "-H",
+      "Authorization: Bearer FAKE KEY",
+      "--data-binary",
+      "@-",
+    }, request.cmd)
+    assert.are.same({
+      model = "FAKE_MODEL",
+      messages = { { role = "user", content = "What does this code do?\nsome input" } },
+      max_completion_tokens = 20000,
+    }, vim.json.decode(request.body))
     mock.revert(mock_os)
   end)
 
-  it("should get formatted prompt correctly - completion_command", function()
+  it("should build a completion request", function()
     local mock_os = mock(os, true)
     mock_os.getenv.returns("FAKE KEY")
-    local escaped_prompt = "This is an escaped prompt"
-    local question = "What does this code do?"
-    ---@type completion_command
-    local command_type = "completion_command"
 
-    local formatted_prompt = chat_gpt.get_formatted_command(escaped_prompt, question, command_type)
-    assert.are.equal(
-      formatted_prompt,
-      '  curl https://api.openai.com/v1/completions \\\n    2>/dev/null \\\n    -H "Content-Type: application/json" \\\n    -H "Authorization: Bearer FAKE KEY" \\\n    -d \'{\n      "model": "FAKE_COMPLETION_MODEL",\n      "prompt": "What does this code do?\\nThis is an escaped prompt",\n      "max_tokens": 2000,\n      "temperature": 0\n    }\'\n'
-    )
+    local request = chat_gpt.build_request("some input", "What does this code do?", "completion_command")
+    assert.are.equal("https://api.openai.com/v1/completions", request.cmd[3])
+    assert.are.same({
+      model = "FAKE_COMPLETION_MODEL",
+      prompt = "What does this code do?\nsome input",
+      max_tokens = 2000,
+    }, vim.json.decode(request.body))
+    mock.revert(mock_os)
+  end)
+
+  it("should round-trip special characters in the request body", function()
+    local mock_os = mock(os, true)
+    mock_os.getenv.returns("FAKE KEY")
+
+    local input = table.concat({
+      [[git describe --long 2>/dev/null \]],
+      [[  | sed 's/\([^-]*-g\)/r\1/' \]],
+      [[  || printf "r%s.%s" "$(git rev-list --count HEAD)"]],
+      "tab:\t cr:\r nul-ish:\1 quote:' dquote:\"",
+    }, "\n")
+    local request = chat_gpt.build_request(input, "100% safe?", "chat_command")
+    assert.are.equal("100% safe?\n" .. input, vim.json.decode(request.body).messages[1].content)
     mock.revert(mock_os)
   end)
 
@@ -143,11 +160,14 @@ describe("chat-gpt", function()
 
     local mock_system = mock(system, true)
     mock_system.make_system_call_with_retry.returns(example_response)
-    local escaped_input = "This is an escaped input"
+    local input = "This is an input"
     local optional_question = "What does this code do?"
     local prompt_type = "completion_command"
-    local response = chat_gpt.call_gpt(escaped_input, optional_question, prompt_type)
+    local response = chat_gpt.call_gpt(input, optional_question, prompt_type)
     assert.are.equal(type(response), "table")
+    local call_args = mock_system.make_system_call_with_retry.calls[1].vals
+    assert.are.equal("curl", call_args[1][1])
+    assert.are.equal("What does this code do?\nThis is an input", vim.json.decode(call_args[2]).prompt)
     mock.revert(mock_os)
     mock.revert(mock_system)
   end)

@@ -10,39 +10,13 @@ local M = {}
 ---@field input string
 ---@field response string
 
----@alias completion_command string
-local completion_command = [[
-  curl ##BASE_API##/completions \
-    2>/dev/null \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer ##API_KEY##" \
-    -d '{
-      "model": "##MODEL##",
-      "prompt": "##OPTIONAL_QUESTION##\n##ESCAPED_INPUT##",
-      "max_tokens": 2000,
-      "temperature": 0
-    }'
-]]
+---@alias completion_command "completion_command"
+---@alias chat_command "chat_command"
+---@alias commands completion_command|chat_command
 
----@alias chat_command string
-local chat_command = [[
-  curl ##BASE_API##/chat/completions \
-    2>/dev/null \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer ##API_KEY##" \
-    -d '{
-      "model": "##MODEL##",
-      "messages": [{"role": "user", "content": "##OPTIONAL_QUESTION##\n##ESCAPED_INPUT##"}],
-      "max_completion_tokens": 20000,
-      "temperature": 0.2
-    }'
-]]
-
----@enum commands
-local COMMANDS = {
-  completion = completion_command,
-  chat = chat_command,
-}
+---@class ExplainItRequest
+---@field cmd string[] curl argv, run directly without a shell
+---@field body string JSON request body, passed to curl on stdin
 
 --- Formats a response string to extract the chat-gpt response (or error) from the API response. Includes logic to be API agnostic for either the completion or the chat API
 ---@param response_json table
@@ -84,56 +58,78 @@ M.get_question = function(question)
   return question
 end
 
---- Uses a local command and replaces placeholder text with the ChatGPT API Key from an env var and placeholder text with the prompt
----@param escaped_input string
+--- Builds the JSON-serializable request body for the chat or completion API
+---@param input string raw (unescaped) text to send
 ---@param question string
 ---@param command_type commands
----@return string
-M.get_formatted_command = function(escaped_input, question, command_type)
-  local command_str = ""
-  local model = ""
+---@return table
+M.build_request_body = function(input, question, command_type)
+  local content = question .. "\n" .. input
+  if command_type == "chat_command" then
+    return {
+      model = _G.ExplainIt.config.openai_chat_model,
+      messages = { { role = "user", content = content } },
+      max_completion_tokens = 20000,
+    }
+  end
+  return {
+    model = _G.ExplainIt.config.openai_completion_model,
+    prompt = content,
+    max_tokens = 2000,
+  }
+end
+
+--- Builds the curl argv and JSON body for an API call. The body is encoded with vim.json and sent on
+--- stdin, so the input never passes through a shell and needs no manual escaping.
+---@param input string raw (unescaped) text to send
+---@param question string
+---@param command_type commands
+---@return ExplainItRequest
+M.build_request = function(input, question, command_type)
   local base_api = _G.ExplainIt.config.model_base_api or "https://api.openai.com/v1"
   -- Remove trailing slash if present for consistent URL building
   base_api = base_api:gsub("/$", "")
+  local endpoint = command_type == "chat_command" and "/chat/completions" or "/completions"
 
-  if command_type == "chat_command" then
-    model = _G.ExplainIt.config.openai_chat_model
-    command_str = COMMANDS.chat:gsub("##MODEL##", model)
-  else
-    model = _G.ExplainIt.config.openai_completion_model
-    command_str = COMMANDS.completion:gsub("##MODEL##", model)
-  end
-  command_str = command_str:gsub("##BASE_API##", base_api)
-  D.log_always("chat-gpt", "Using model: %s (api: %s, base: %s)", model, command_type, base_api)
   local api_key = os.getenv("CHAT_GPT_API_KEY")
   if not api_key or api_key == "" then
-    D.log("chat-gpt.get_formatted_command", "Failed to get CHAT_GPT_API_KEY")
+    D.log("chat-gpt.build_request", "Failed to get CHAT_GPT_API_KEY")
     error("Failed to get API key. Is CHAT_GPT_API_KEY env var set?")
   end
-  local populated_token = string.gsub(command_str, "##API_KEY##", api_key)
 
-  local populated_question = string.gsub(populated_token, "##OPTIONAL_QUESTION##", question)
-  local populated_prompt = string.gsub(populated_question, "##ESCAPED_INPUT##", escaped_input)
-  local with_tokens = string.gsub(populated_question, "##TOKEN_LIMIT##", _G.ExplainIt.config.token_limit)
+  local body = M.build_request_body(input, question, command_type)
+  D.log_always("chat-gpt", "Using model: %s (api: %s, base: %s)", body.model, command_type, base_api)
 
-  D.log("chat-gpt.get_formatted_command", "prompt: %s", with_tokens)
-  return populated_prompt
+  return {
+    cmd = {
+      "curl",
+      "--silent",
+      base_api .. endpoint,
+      "-H",
+      "Content-Type: application/json",
+      "-H",
+      "Authorization: Bearer " .. api_key,
+      "--data-binary",
+      "@-",
+    },
+    body = vim.json.encode(body),
+  }
 end
 
 --- Formats input in order to make an API call to ChatGPT, makes the API call, writes the prompt and response to a file, then returns the response
----@param escaped_input any
----@param optional_question any
----@param prompt_type any
+---@param input string
+---@param optional_question string|nil
+---@param prompt_type commands
 ---@return AIResponse
-M.call_gpt = function(escaped_input, optional_question, prompt_type)
-  D.log("chat-gpt.call_chat_gpt", "Making API call to /v1/completions API with prompt: %s", escaped_input)
+M.call_gpt = function(input, optional_question, prompt_type)
+  D.log("chat-gpt.call_chat_gpt", "Making API call with prompt: %s", input)
   local question = M.get_question(optional_question)
-  local formatted_prompt = M.get_formatted_command(escaped_input, question, prompt_type)
-  D.log("chat-gpt.call_chat_gpt", "prompt: %s", formatted_prompt)
-  local response = system.make_system_call_with_retry(formatted_prompt)
+  local request = M.build_request(input, question, prompt_type)
+  D.log("chat-gpt.call_chat_gpt", "body: %s", request.body)
+  local response = system.make_system_call_with_retry(request.cmd, request.body)
   local ai_response = {
     question = question,
-    input = escaped_input,
+    input = input,
     response = M.parse_response(response, false),
   }
   D.log("chat-gpt.call_chat_gpt", "ai_response: %s", vim.inspect(ai_response))
@@ -161,27 +157,27 @@ M.write_ai_response_to_file = function(ai_response)
 end
 
 --- Async version of call_gpt using callbacks
----@param escaped_input any
----@param optional_question any
----@param prompt_type any
+---@param input string
+---@param optional_question string|nil
+---@param prompt_type commands
 ---@param on_success fun(response: AIResponse) callback with result
 ---@param on_error fun(error: string) callback with error
-M.call_gpt_async = function(escaped_input, optional_question, prompt_type, on_success, on_error)
-  D.log("chat-gpt.call_gpt_async", "Making async API call to /v1/chat/completions API with prompt: %s", escaped_input)
+M.call_gpt_async = function(input, optional_question, prompt_type, on_success, on_error)
+  D.log("chat-gpt.call_gpt_async", "Making async API call with prompt: %s", input)
 
   local question = M.get_question(optional_question)
-  local formatted_prompt = M.get_formatted_command(escaped_input, question, prompt_type)
-  D.log("chat-gpt.call_gpt_async", "prompt: %s", formatted_prompt)
+  local request = M.build_request(input, question, prompt_type)
+  D.log("chat-gpt.call_gpt_async", "body: %s", request.body)
 
   -- Make async call
-  system.make_async_system_call(formatted_prompt, function(response)
+  system.make_async_system_call(request.cmd, function(response)
     -- Success callback
     vim.schedule(function()
       local success, result = pcall(vim.fn.json_decode, response)
       if success and result then
         local ai_response = {
           question = question,
-          input = escaped_input,
+          input = input,
           response = M.parse_response(result, false),
         }
         D.log("chat-gpt.call_gpt_async", "ai_response: %s", vim.inspect(ai_response))
@@ -194,7 +190,7 @@ M.call_gpt_async = function(escaped_input, optional_question, prompt_type, on_su
   end, function(error)
     -- Error callback
     vim.schedule(function() on_error("API call failed: " .. error) end)
-  end)
+  end, request.body)
 end
 
 return M

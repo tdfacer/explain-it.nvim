@@ -33,8 +33,7 @@ lua/explain-it/
 ├── util/
 │   ├── buffer.lua        # get_visual_selection(), get_buffer_lines()
 │   ├── strings.lua       # String formatting utilities
-│   ├── debug.lua         # log(), log_always(), tprint()
-│   └── escape.lua        # Text escaping for API calls
+│   └── debug.lua         # log(), log_always(), tprint()
 └── context-builder/      # Interactive UI feature (uses morph.nvim)
     ├── init.lua          # Main component with state management
     ├── components/       # UI components (status_bar, context_editor)
@@ -45,8 +44,8 @@ lua/explain-it/
 
 1. User triggers `explain_it(opts)` via keybinding
 2. Buffer content extracted (full buffer or visual selection)
-3. Text escaped and passed to `call_chat_gpt()`
-4. `chat_gpt.call_gpt()` builds curl command and makes system call
+3. Raw text passed to `call_chat_gpt()`
+4. `chat_gpt.build_request()` encodes the body with `vim.json.encode`; curl runs as an argv list (no shell) with the body on stdin
 5. Response parsed and displayed via `response_handler.notify_response()`
 
 ### Global State
