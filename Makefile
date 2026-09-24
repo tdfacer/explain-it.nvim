@@ -36,7 +36,7 @@ test-ci: test
 
 # generates the documentation.
 documentation:
-	nvim --headless --noplugin -u ./scripts/minimal_init.lua -c "lua require('mini.doc').generate()" -c "qa!"
+	nvim --clean -l ./scripts/docs.lua
 
 # installs deps before running the documentation generation, useful for the CI.
 documentation-ci: deps documentation

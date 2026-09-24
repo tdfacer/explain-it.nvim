@@ -35,7 +35,7 @@ jobs:
         uses: rhysd/action-setup-vim@v1
         with:
           neovim: true
-          version: v0.8.3
+          version: stable
 
       - name: generate documentation
         run: make documentation-ci
