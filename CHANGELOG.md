@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/tdfacer/explain-it.nvim/compare/v1.2.0...v1.2.1) (2026-09-24)
+
+
+### Bug Fixes
+
+* Encode request body as JSON instead of hand-escaping ([#22](https://github.com/tdfacer/explain-it.nvim/issues/22)) ([988a88d](https://github.com/tdfacer/explain-it.nvim/commit/988a88d73c9ea973acee10d3bb3df6ae23ef85ff))
+
 ## [1.2.0](https://github.com/tdfacer/explain-it.nvim/compare/v1.1.0...v1.2.0) (2026-09-08)
 
 
