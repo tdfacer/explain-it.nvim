@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/tdfacer/explain-it.nvim/compare/v1.2.1...v1.3.0) (2026-09-24)
+
+
+### Features
+
+* Add Anthropic (Claude) provider ([#25](https://github.com/tdfacer/explain-it.nvim/issues/25)) ([a6e1e24](https://github.com/tdfacer/explain-it.nvim/commit/a6e1e248d2a57a9ffcd9ecc74833347e1b0bb2ae))
+
 ## [1.2.1](https://github.com/tdfacer/explain-it.nvim/compare/v1.2.0...v1.2.1) (2026-09-24)
 
 
