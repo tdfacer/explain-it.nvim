@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.0](https://github.com/tdfacer/explain-it.nvim/compare/v1.1.0...v1.2.0) (2026-09-08)
+
+
+### Features
+
+* Add context builder ([21d7de4](https://github.com/tdfacer/explain-it.nvim/commit/21d7de454d6f757ae6e5f0248c6992d0b7d33fba))
+* **append:** Append response to current buffer ([51e94f9](https://github.com/tdfacer/explain-it.nvim/commit/51e94f93a04e0a54d9038fc3e8474cc077e8d2df))
+
+
+### Bug Fixes
+
+* **response:** Fix percent chars in response ([dc27f53](https://github.com/tdfacer/explain-it.nvim/commit/dc27f5305220ed92305431ce96b5da996edff861))
+
 ## [1.1.0](https://github.com/tdfacer/explain-it.nvim/compare/v1.0.4...v1.1.0) (2023-07-07)
 
 
